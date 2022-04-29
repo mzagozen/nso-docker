@@ -1,22 +1,54 @@
 * Skeletons for NSO in Docker git repositories
-  The directories herein are repository skeletons for the standard form of repositories in the NID (NSO in Docker) ecosystem, specifically:
+  The sub-directories herein are repository skeletons for the standard form of repositories in the NID (NSO in Docker) ecosystem, specifically:
 
   - *ned*: a repository skeleton for the standard form of NID NED repos
   - *package*: generally for repositories containing one or more packages, except for NEDs which are better served by the NID ned standard form
   - *system*: for working with an NSO system, for example, composing multiple other packages (like NEDs) and/or having local service packages
 
-** Picking skeleton(s)
-   A good starting point is to have one repository using the =system= skeleton that contains all your service packages, place each NED in its own repository and include them from the =system= repository. NEDs tend to take longer time to compile than the average service package, mostly due to their often larger YANG models, which is why they are best kept on their own repo. In addition, NEDs are usually developed by Cisco or another party, which again is easier to track by keeping them on a separate repository.
+** Getting started with NSO in Docker
+- build the nso-docker git repo, which will give you the =cisco-nso-base= and =cisco-nso-dev= image
+  - ~cp ~/Downloads/nso-5.8.linux.x86_64.installer.bin nso-docker/nso-install-files~
+  - ~export NSO_VERSION=5.8~
+  - ~make -C nso-docker build tag-release~
+- copy the =system= skeleton, this will be your NSO production system image, which you'll eventually run in your production environment
+  - ~cp -av nso-docker/skeletons/system. ~my-nso-system~
+- place all your packages, including your services packages and any necessary NEDs in the packages directory
+  - e.g. ~mv /path/to/my-service-package my-nso-system/packages/~
+  - e.g. ~mv /path/to/cisco-ios-6.44 my-nso-system/packages/~
+  - e.g. ~mv /path/to/netconf-ios-xr-7.6.1 my-nso-system/packages/~
+  - e.g. ~mv /path/to/nokia-sros_gnmi my-nso-system/packages/~
+- build your system image
+  - ~make -C my-nso-system build~
+- start testenv of your NSO system image
+  - ~cd my-nso-system/testenvs/quick~
+  - ~make start~
+  - enter CLI of NSO ~make cli~
 
-   You will end up with multiple git repositories:
-   - your main repository using the =system= skeleton
-     - place all your service packages here
-   - NED X
-   - NED Y
-   - NED Z
-   - ...
+** Using multiple repositories
+Placing all your packages in a single =system= skeleton as described above is simple but has certain drawbacks;
+- every build means building all packages, NEDs in particular can be very large when compared to the average service package
+- packages might come from different sources or be developed by different teams, so keeping it all in one repo might be tedious
 
-   Most users do not need to create any repositories of their own using the =package= skeleton. It is for building generic packages that are shared in multiple projects. Most packages (that aren't NEDs) are specific to a particular project (containing services specific to a certain use case) and are best placed in the main =system= repository rather than as individual =package= skeleton repositories. The CFP (Core Function Packs) provided by Cisco are good examples of generic packages, or things like [[https://gitlab.com/nso-developer/bgworker/]], which is a generic package.
+An alternative is to separate packages into their own repositories and including the built output in your system image instead. For example, to move a NED to a separate repo, based on the above example:
+#+BEGIN_SRC sh
+# create new repo from NED skeleton
+cp -av ~/nso-docker/skeletons/ned/. ~/netconf-ios-xr-7.6.1
+# move the IOS XR NED over from our system repo
+mv ~/my-nso-system/packages/netconf-ios-xr-7.6.1 ~/netconf-ios-xr-7.6.1/packages/
+# create include file in our system repo
+echo '${PKG_PATH}netconf-ios-xr-7.6.1/package:${NSO_VERSION}' > ~/my-nso-system/includes/netconf-ios-xr-7.6.1
+# build new NED
+make -C ~/netconf-ios-xr-7.6.1 build tag-release
+# rebuild our system image, which should now include the NED
+make -C ~/my-nso-system build
+#+END_SRC
+
+NEDs tend to take longer time to compile than the average service package, mostly due to their often larger YANG models, which is why they are best kept on their own repo. In addition, NEDs are usually developed by Cisco or another party, which again is easier to track by keeping them on a separate repository.
+
+** The package skeleton
+We've covered the use of the =system= and =ned= skeleton. What about the =package= skeleton?
+
+Most users do not need to create any repositories of their own using the =package= skeleton. It is for building generic packages that are shared in multiple projects. Most packages (that aren't NEDs) are specific to a particular project (containing services specific to a certain use case) and are best placed in the main =system= repository rather than as individual =package= skeleton repositories. The CFP (Core Function Packs) provided by Cisco are good examples of generic packages, or things like [[https://gitlab.com/nso-developer/bgworker/]], which is a generic package that could use the =package= skeletons. Note however that many Cisco CFPs are not recompilable, so it does not make sense to place them in a =package= skeleton for that reason.
 
 ** Using a skeleton
   To get started, create your new project directory and copy the content of the skeleton into the directory. Ensure you also copy files starting with '.' (dot-files).
