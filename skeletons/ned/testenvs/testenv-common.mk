@@ -30,7 +30,7 @@ TESTENV:=$(shell basename $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST
 # stop. The start and test targets are specific to the testenv and are not part
 # of this common file.
 
-.PHONY: test dap-port debug-vscode build clean-build stop shell cli runcmdC runcmdJ loadconf saveconfxml save-logs check-logs dev-shell wait-healthy
+.PHONY: test dap-port debug-vscode build clean-build stop shell cli pycli runcmdC runcmdJ loadconf saveconfxml save-logs check-logs dev-shell wait-healthy
 
 # dap-port: get the host port mapping for the DAP daemon in the container
 dap-port:
@@ -101,6 +101,13 @@ shell:
 
 cli:
 	docker exec -it $(CNT_PREFIX)-nso$(NSO) bash -lc 'ncs_cli -u admin'
+
+# pycli - start IPython with ncs_pycli
+# The interactive Python interpreter will have access to the NSO instance via
+# the automatically defined `root` and `trans` objects. See
+# https://github.com/NSO-developer/ncs_pycli for examples
+pycli:
+	docker run -it --rm --network container:$(CNT_PREFIX)-nso$(NSO) $(NSO_IMAGE_PATH)cisco-nso-dev:$(NSO_VERSION) ncs_pycli
 
 runcmdC runcmdJ:
 	@if [ -z "$(CMD)" ]; then echo "CMD variable must be set"; false; fi
