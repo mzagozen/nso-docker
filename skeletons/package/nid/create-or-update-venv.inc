@@ -9,6 +9,8 @@ create_or_update_venv () {
     local req_txt=$2
     local venv=$3
     local clear=${4:-true}
+    local saved_options=$(set +o)
+    set -o errexit
     pushd "${pkg_dir}" > /dev/null
     if [ -f "${req_txt}" ]; then
         if [ ! -f "${venv}/pyvenv.cfg" ] || [ "${clear}" == "true" ]; then
@@ -39,4 +41,5 @@ create_or_update_venv () {
         deactivate
     fi
     popd > /dev/null
+    eval "${saved_options}"
 }
