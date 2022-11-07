@@ -63,6 +63,8 @@ test:
 	$(MAKE) test-error-exit-code
 	$(MAKE) test-ncs-stop
 	$(MAKE) test-nso-restart
+	$(MAKE) test-cdb-persistence-container
+	@docker info -f '{{.Info.Driver}}' | grep overlay && echo "Skipping test-cdb-persistence-image on Docker with OverlayFS" || $(MAKE) test-cdb-persistence-image
 	$(MAKE) test-logrotate
 	$(MAKE) test-admin-user
 	$(MAKE) test-admin-user-custom
@@ -212,6 +214,60 @@ test-nso-restart:
 	@echo "-- Remove the container"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 
+test-cdb-persistence-image:
+	@echo "\n== Verify we can commit a new image from a running container and run it with the data intact"
+	-docker rm -f $(CNT_PREFIX)-$@
+	@echo "-- Starting cisco-nso test container -------------------------------------------"
+	docker run -td $(DOCKER_PLATFORM_ARG) --name $(CNT_PREFIX)-$@ --label com.cisco.nso.testenv.name=$(CNT_PREFIX) $(CNT_PREFIX)-test-cisco-nso-$(DOCKER_TAG)
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
+	@echo "-- Store a value ---------------------------------------------------------------"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo -e "configure\nset testpkg-python a-value 1337\ncommit\nexit" | ncs_cli -u admin'
+	@echo "-- Store an encrypted value ---------------------------------------------------------------"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo -e "configure\nset testpkg-python encrypted-value 1338\ncommit\nexit" | ncs_cli -u admin'
+	@echo "-- Ensure we can decrypt encrypted value --------------------------------------------------"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "request testpkg-python decrypt" | ncs_cli -u admin'
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "request testpkg-python decrypt" | ncs_cli -u admin' | grep "cleartext: 1338"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "show configuration testpkg-python" | ncs_cli -u admin'
+	@echo "-- Creating new image from cisco-nso test container -------------------------------------------"
+	docker stop $(CNT_PREFIX)-$@
+	image=$$(docker commit $(CNT_PREFIX)-$@); \
+	docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1; \
+	docker run -td $(DOCKER_PLATFORM_ARG) --name $(CNT_PREFIX)-$@ --label com.cisco.nso.testenv.name=$(CNT_PREFIX) $${image}
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600' || (docker logs $(CNT_PREFIX)-$@ && exit 1)
+	@echo "-- Validate stored value -------------------------------------------------------"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "show configuration testpkg-python a-value" | ncs_cli -u admin' | grep "a-value 1337;"
+	@echo "-- Validate encrypted value ----------------------------------------------------"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "request testpkg-python decrypt" | ncs_cli -u admin'
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "request testpkg-python decrypt" | ncs_cli -u admin' | grep "cleartext: 1338"
+	@echo "-- Stopping cisco-nso test container -------------------------------------------"
+	-docker rm -f $(CNT_PREFIX)-$@
+
+test-cdb-persistence-container:
+	@echo "\n== Verify CDB is properly persisted in the container"
+	-docker rm -f $(CNT_PREFIX)-$@
+	@echo "-- Starting cisco-nso test container -------------------------------------------"
+	docker run -td $(DOCKER_PLATFORM_ARG) --name $(CNT_PREFIX)-$@ --label com.cisco.nso.testenv.name=$(CNT_PREFIX) $(CNT_PREFIX)-test-cisco-nso-$(DOCKER_TAG)
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
+	@echo "-- Store a value ---------------------------------------------------------------"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo -e "configure\nset testpkg-python a-value 1337\ncommit\nexit" | ncs_cli -u admin'
+	@echo "-- Store an encrypted value ---------------------------------------------------------------"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo -e "configure\nset testpkg-python encrypted-value 1338\ncommit\nexit" | ncs_cli -u admin'
+	@echo "-- Ensure we can decrypt encrypted value --------------------------------------------------"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "request testpkg-python decrypt" | ncs_cli -u admin'
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "request testpkg-python decrypt" | ncs_cli -u admin' | grep "cleartext: 1338"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "show configuration testpkg-python" | ncs_cli -u admin'
+	@echo "-- Restarting cisco-nso test container -------------------------------------------"
+	docker stop $(CNT_PREFIX)-$@
+	docker start $(CNT_PREFIX)-$@
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "show configuration testpkg-python" | ncs_cli -u admin'
+	@echo "-- Validate stored value -------------------------------------------------------"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "show configuration testpkg-python a-value" | ncs_cli -u admin' | grep "a-value 1337;"
+	@echo "-- Validate encrypted value ----------------------------------------------------"
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "request testpkg-python decrypt" | ncs_cli -u admin'
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "request testpkg-python decrypt" | ncs_cli -u admin' | grep "cleartext: 1338"
+	@echo "-- Stopping cisco-nso test container -------------------------------------------"
+	-docker rm -f $(CNT_PREFIX)-$@
 
 test-admin-user:
 	@echo "\n== Verify adding admin user works"
