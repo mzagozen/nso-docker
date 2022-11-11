@@ -97,7 +97,7 @@ test-multiver:
 	$(MAKE) build-multiver-test-images
 
 	@echo "\n== Running multi-version test cases"
-	$(MAKE) test-cdb-persistence
+	$(MAKE) test-cdb-persistence-volume
 	$(MAKE) test-backup-restore
 	$(MAKE) test-backup-restore-nonempty-volume
 	$(MAKE) test-run-time-ssh-key-gen
@@ -702,7 +702,7 @@ test-mounted-config:
 # Multi Version tests #
 #######################
 
-test-cdb-persistence:
+test-cdb-persistence-volume:
 	@echo "\n== Verify CDB is properly persisted on a docker volume"
 	-docker rm -f $(CNT_PREFIX)-$@
 	@echo "-- Creating volume for cisco-nso test container --------------------------------"
