@@ -1,4 +1,4 @@
-SUBSETS_PROTO=-all4.yaml -all5.yaml -all.yaml -tot4.yaml -tot5.yaml -tot.yaml
+SUBSETS_PROTO=-all4.yaml -all5.yaml -all6.yaml -all.yaml -tot4.yaml -tot5.yaml -tot6.yaml -tot.yaml
 SUBSETS_BUILD=$(addprefix build,$(SUBSETS_PROTO))
 SUBSETS_TEST=$(addprefix test,$(SUBSETS_PROTO))
 SUBSETS_DEPLOY=$(addprefix deploy,$(SUBSETS_PROTO))
