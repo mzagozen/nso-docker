@@ -219,7 +219,7 @@ if [ ! -f /nso/etc/ssl/cert/host.cert ]; then
 fi
 cp -pr /nso/etc/ssl /etc/ncs/
 
-# If necessary, i.e. if starting NSO 5 on a CDB written by NSO 4, compact CDB.
+# If necessary, i.e. if starting NSO >4 on a CDB written by NSO 4, compact CDB.
 # If there is no CDB on disk, ncs --cdb-debug-dump will return "Error..." and we
 # won't match that, thus such an error is handled correctly. Running
 # --cdb-debug-dump on a large CDB takes a considereable amount of time,
@@ -227,7 +227,7 @@ cp -pr /nso/etc/ssl /etc/ncs/
 # broken pipe to ncs, which will in turn exit. This works since the interesting
 # data is in the header that is printed first.
 CDB_MAJVER=$(ncs --cdb-debug-dump /nso/run/cdb | head | awk '/^Version:.*from.*version/ { printf($2) }')
-if [ -n "${CDB_MAJVER}" ] && [ "${CDB_MAJVER}" -eq 4 ] && [ "${NSO_MAJVER}" -eq 5 ]; then
+if [ -n "${CDB_MAJVER}" ] && [ "${CDB_MAJVER}" -eq 4 ] && [ "${NSO_MAJVER}" -ge 5 ]; then
     echo "run-nso.sh: CDB written by NSO version 4 but now running version 5. Will attempt to compact CDB"
     ncs --cdb-compact /nso/run/cdb
     echo "run-nso.sh: CDB compaction done"
