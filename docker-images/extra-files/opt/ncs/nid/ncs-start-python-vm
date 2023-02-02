@@ -61,7 +61,7 @@ export PYTHONPATH
 # the arguments, even if the order changes. In addition to VM ID we also handle
 # -u|--upgrade, to simplify setting the main executable name.
 OPTS="$@"
-TEMP=`getopt -o l:f:i:us: --long log-level:,log-file:,id:,upgrade,self-assign-warning: -n 'ncs-start-python-vm' -- "$@"`
+TEMP=`getopt -o l:f:i:us:c: --long log-level:,log-file:,id:,upgrade,self-assign-warning:,code: -n 'ncs-start-python-vm' -- "$@"`
 #if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 # Note the quotes around `$TEMP': they are essential!
 eval set -- "$TEMP"
@@ -71,6 +71,7 @@ while true; do
     case "$1" in
         -u | --upgrade ) main="${pypath}/ncs_pyvm/upgrade.py"; shift ;;
         -i | --id ) VMID="$2"; shift 2 ;;
+        -c | --code) code="$2"; ${PYTHON} -c "${code}"; exit $? ;;
         -- ) shift; break ;;
         * ) if [ "$#" -gt 0 ]; then shift; else break; fi ;;
     esac
