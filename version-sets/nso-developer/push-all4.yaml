@@ -1,3 +1,9 @@
+push-4.7.9:
+  extends: .push
+  variables:
+    NSO_VERSION: "4.7.9"
+    NSO_VERSION_IS_TOT: "false"
+
 push-4.7.10:
   extends: .push
   variables:
@@ -9,9 +15,3 @@ push-4.7.11:
   variables:
     NSO_VERSION: "4.7.11"
     NSO_VERSION_IS_TOT: "true"
-
-push-4.7.9:
-  extends: .push
-  variables:
-    NSO_VERSION: "4.7.9"
-    NSO_VERSION_IS_TOT: "false"

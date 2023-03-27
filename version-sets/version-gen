@@ -292,7 +292,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     with open(args.version_file) as f:
-        versions_input = sorted(list(map(lambda x: vsn_split(x), json.load(f))))
+        versions_input = sorted(list(map(lambda x: vsn_split(x), json.load(f))), key=lambda v: v.tup)
 
     tot_versions = list(f_tot(versions_input))
     versions = [v if v not in tot_versions else replace(v, tot=True) for v in versions_input]
