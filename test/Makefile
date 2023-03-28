@@ -403,6 +403,14 @@ test-python:
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "show packages" | ncs_cli -u admin' | grep oper-status.up | wc -l | grep '^\s*5$$'
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "request testpkg-python python-test" | ncs_cli -u admin' | grep "Hello world from Python" || (docker exec $(CNT_PREFIX)-$@ bash -c 'cat /log/ncs-python-vm*.log' && exit 1)
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "request testpkg-pyvenv-a python-test" | ncs_cli -u admin' | grep "Lorum" || (docker exec -t $(CNT_PREFIX)-$@ bash -c 'cat /log/ncs-python-vm*.log' && exit 1)
+	@echo "\n== Verify that we can restart the Python VM"
+	NSO_CNT=$(CNT_PREFIX)-$@ ./cmd.py "request python-vm stop name python-test-package" --success-pattern "result OK"
+	if [ $(NSO_VERSION_MAJOR) -gt 5 ] || ( [ $(NSO_VERSION_MAJOR) -eq 5 ] && [ $(NSO_VERSION_MINOR) -gt 2 ] ); then \
+		NSO_CNT=$(CNT_PREFIX)-$@ ./cmd.py "request python-vm start name python-test-package" --success-pattern "result OK"; \
+	else \
+		NSO_CNT=$(CNT_PREFIX)-$@ ./cmd.py "request python-vm start name python-test-package" --success-pattern "result ERROR: already_started"; \
+	fi
+	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'echo "request testpkg-python python-test" | ncs_cli -u admin' | grep "Hello world from Python" || (docker exec $(CNT_PREFIX)-$@ bash -c 'cat /log/ncs-python-vm*.log' && exit 1)
 	@echo "\n== Verify that Python remote debugging is disabled"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'sleep 1 | telnet localhost 5678' | grep 'Unable to connect to remote host'
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
