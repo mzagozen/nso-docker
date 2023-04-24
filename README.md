@@ -391,6 +391,14 @@ On startup, when neither `/etc/ncs/ncs.conf` (a directly mounted config) or `/ns
 
 
 <tr>
+<td class="org-left"><code>SSH_HOST_KEY_TYPE</code></td>
+<td class="org-left">enum</td>
+<td class="org-left">ed25519*</td>
+<td class="org-left">Set the SSH host key type to ed2551, rsa or dsa (default changes to rsa if ssh<sub>host</sub><sub>rsa</sub><sub>key</sub> is found)</td>
+</tr>
+
+
+<tr>
 <td class="org-left"><code>CLI_STYLE</code></td>
 <td class="org-left">enum</td>
 <td class="org-left">j</td>
@@ -597,9 +605,11 @@ Restoring a NSO backup should move the current run directory (`/nso/run` to `/ns
 
 NSO looks for the SSH host key in the directory `/nso/etc/ssh`. The filename differs based on the configured host key algorithm. NSO in Docker will use the RSA algorithm for host keys.
 
-If no SSH host key exists, one will be generated. As it is stored in `/nso` which is typically a persistent shared volume in production setups, it will remain the same across restarts or upgrades of NSO.
+If no SSH host key exists, one will be generated. As it is stored in `/nso` which is typically a persistent shared volume in production setups, it will remain the same across restarts or upgrades of NSO. The host key type may be set with the `SSH_HOST_KEY_TYPE` environment variable.
 
-NSO version 5.3 and newer supports ed25519 and will in fact default to using ed25519 as server host key on new installations but this behavior is suppressed for NSO in Docker and instead RSA is used as it is supported by all currently existing versions of NSO.
+NSO version 5.3 and newer supports ed25519 and will in fact default to using ed25519 as server host key on new installations. For a while NSO in Docker suppressed this behavior and instead used RSA as it was supported by all currently existing versions of NSO. The view on this has changed when NSO excluded from the default list of permitted algorithms for southbound device integration. Sticking with RSA means we would need to explicitly allow RSA even for inter- NSO communication like LSA.
+
+To upgrade an existing installation with an active RSA host key type, simply remove the old keys from `/nso/etc/ssh/ssh_host_rsa_key` and restart the NSO container. By default the startup script will generate a new keypair using ed25519.
 
 
 # HTTPS TLS certificate

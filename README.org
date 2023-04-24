@@ -303,17 +303,18 @@ endif
 *** Idiomatic container handling of ncs.conf
     On startup, when neither ~/etc/ncs/ncs.conf~ (a directly mounted config) or ~/nso/etc/ncs.conf~ exists, NSO in Docker will default to starting from the stock config from the installed NSO version, which is stored in the container image at ~/etc/ncs/ncs.conf.in~. This configuration is copied to ~/etc/ncs/ncs.conf~ and then mangled - applying a number of modifications to the configuration, before NSO is started. These modifications are performed by the startup script ~/etc/ncs/pre-ncs-start.d/50-mangle-config.sh~, which in turn takes options through the following environment variables:
 
-    | Environment variable | Type    | Default | Description                                    |
-    |----------------------+---------+---------+------------------------------------------------|
-    | =MANGLE_CONFIG=      | boolean | -       | Force enabling or disabling of config mangling |
-    | =PAM=                | boolean | false   | Enable PAM instead of local auth in NSO (AAA)  |
-    | =HA_ENABLE=          | boolean | false   | Enable HA                                      |
-    | =HTTP_ENABLE=        | boolean | false   | Enable HTTP web UI                             |
-    | =HTTPS_ENABLE=       | boolean | false   | Enable HTTPS (TLS) web UI                      |
-    | =SSH_PORT=           | uint16  | 22      | Set port for SSH to listen on                  |
-    | =CLI_STYLE=          | enum    | j       | Configure the default CLI style to 'j' or 'c'  |
-    | =XPATH_TRACE=        | boolean | false   | Enable XPath tracing                           |
-    | =AUTO_WIZARD=        | boolean | true    | Disable CLI auto-wizard by setting to 'false'  |
+    | Environment variable | Type    | Default  | Description                                                                                           |
+    |----------------------+---------+----------+-------------------------------------------------------------------------------------------------------|
+    | =MANGLE_CONFIG=      | boolean | -        | Force enabling or disabling of config mangling                                                        |
+    | =PAM=                | boolean | false    | Enable PAM instead of local auth in NSO (AAA)                                                         |
+    | =HA_ENABLE=          | boolean | false    | Enable HA                                                                                             |
+    | =HTTP_ENABLE=        | boolean | false    | Enable HTTP web UI                                                                                    |
+    | =HTTPS_ENABLE=       | boolean | false    | Enable HTTPS (TLS) web UI                                                                             |
+    | =SSH_PORT=           | uint16  | 22       | Set port for SSH to listen on                                                                         |
+    | =SSH_HOST_KEY_TYPE=  | enum    | ed25519* | Set the SSH host key type to ed2551, rsa or dsa (default changes to rsa if ssh_host_rsa_key is found) |
+    | =CLI_STYLE=          | enum    | j        | Configure the default CLI style to 'j' or 'c'                                                         |
+    | =XPATH_TRACE=        | boolean | false    | Enable XPath tracing                                                                                  |
+    | =AUTO_WIZARD=        | boolean | true     | Disable CLI auto-wizard by setting to 'false'                                                         |
 
     Injecting a ~ncs.conf~ and enabling configuration mangling will also accept the same environment variables as input.
 
@@ -423,9 +424,11 @@ Do note that the example image URLs used above would be the result of the defaul
 * SSH host key
   NSO looks for the SSH host key in the directory =/nso/etc/ssh=. The filename differs based on the configured host key algorithm. NSO in Docker will use the RSA algorithm for host keys.
 
-  If no SSH host key exists, one will be generated. As it is stored in =/nso= which is typically a persistent shared volume in production setups, it will remain the same across restarts or upgrades of NSO.
+  If no SSH host key exists, one will be generated. As it is stored in =/nso= which is typically a persistent shared volume in production setups, it will remain the same across restarts or upgrades of NSO. The host key type may be set with the ~SSH_HOST_KEY_TYPE~ environment variable.
 
-  NSO version 5.3 and newer supports ed25519 and will in fact default to using ed25519 as server host key on new installations but this behavior is suppressed for NSO in Docker and instead RSA is used as it is supported by all currently existing versions of NSO.
+  NSO version 5.3 and newer supports ed25519 and will in fact default to using ed25519 as server host key on new installations. For a while NSO in Docker suppressed this behavior and instead used RSA as it was supported by all currently existing versions of NSO. The view on this has changed when NSO excluded from the default list of permitted algorithms for southbound device integration. Sticking with RSA means we would need to explicitly allow RSA even for inter- NSO communication like LSA.
+
+  To upgrade an existing installation with an active RSA host key type, simply remove the old keys from =/nso/etc/ssh/ssh_host_rsa_key= and restart the NSO container. By default the startup script will generate a new keypair using ed25519.
 
 * HTTPS TLS certificate
   NSO expects to find a TLS certificate and key at =/nso/etc/ssl/cert/host.cert= and =/nso/etc/ssl/cert/host.key= respectively. Since the =/nso= path is usually on persistent shared volume for production setups, the certificate remains the same across restarts or upgrades.

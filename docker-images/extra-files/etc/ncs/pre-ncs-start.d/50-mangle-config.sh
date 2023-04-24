@@ -41,6 +41,7 @@ HA_ENABLE=${HA_ENABLE:-false}
 HTTP_ENABLE=${HTTP_ENABLE:-false}
 HTTPS_ENABLE=${HTTPS_ENABLE:-false}
 SSH_PORT=${SSH_PORT:-22}
+SSH_HOST_KEY_TYPE=${SSH_HOST_KEY_TYPE:-ed25519}
 
 echo "== Mangle config variables"
 echo "AUTO_WIZARD: ${AUTO_WIZARD}"
@@ -83,14 +84,17 @@ xmlstarlet edit --inplace -N x=http://tail-f.com/yang/tailf-ncs-config \
     $CONF_FILE
 
 # Set host key algorithm for NSO built-in SSH server.
+# Default in NSO x.x is ed25519 so we don't do anything in that case.
 # In NSO 5.4 and later, there is no <ssh> node while in earlier versions, it
 # already exists. We first wipe the <ssh> node to avoid creating a duplicate.
-xmlstarlet edit --inplace -N x=http://tail-f.com/yang/tailf-ncs-config \
-           --delete '/x:ncs-config/x:ssh' \
-           -s '/x:ncs-config' -t elem -n 'ssh' \
-           -s '/x:ncs-config/ssh' -t elem -n 'algorithms' \
-           -s '/x:ncs-config/ssh/algorithms' -t elem -n 'server-host-key' -v "ssh-rsa" \
-           $CONF_FILE
+if [ "${SSH_HOST_KEY_TYPE}" != "ed25519" ]; then
+    xmlstarlet edit --inplace -N x=http://tail-f.com/yang/tailf-ncs-config \
+               --delete '/x:ncs-config/x:ssh' \
+               -s '/x:ncs-config' -t elem -n 'ssh' \
+               -s '/x:ncs-config/ssh' -t elem -n 'algorithms' \
+               -s '/x:ncs-config/ssh/algorithms' -t elem -n 'server-host-key' -v "ssh-${SSH_HOST_KEY_TYPE}" \
+               $CONF_FILE
+fi
 
 # update ports for various protocols for which the default value in ncs.conf is
 # different from the protocols default port (to allow starting ncs without root)

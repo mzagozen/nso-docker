@@ -190,16 +190,24 @@ else
 fi
 
 # check whether SSH keys still exist in the "old" location
-if [ -f /nso/ssh/ssh_host_rsa_key ]; then
+if [ -f /nso/ssh/ssh_host_*_key ]; then
     echo "Please move your existing SSH keys from /nso/ssh to /nso/etc/ssh"
     exit 1
 fi
 
 # generate SSH key if one doesn't exist
-if [ ! -f /nso/etc/ssh/ssh_host_rsa_key ]; then
-    echo "No SSH key found, generating one!"
+if [ ${NSO_MAJVER} -lt 5 ] || ([ ${NSO_MAJVER} -eq 5 ] && [ ${NSO_MINVER} -lt 3 ]); then
+    echo "NSO version < 5.3 does not support ed25519 type keys, defaulting to rsa"
+    SSH_HOST_KEY_TYPE=rsa
+elif [ -z "${SSH_HOST_KEY_TYPE}" ] && [ -f /nso/etc/ssh/ssh_host_rsa_key ]; then
+    echo "NSO version $(ncs --version) supports ed25519 host key type, but rsa keys exist in /nso/etc/ssh/ssh_host_rsa_key.\nPlease consider migrating to ed25519 by removing the old keys!"
+    SSH_HOST_KEY_TYPE=rsa
+fi
+export SSH_HOST_KEY_TYPE=${SSH_HOST_KEY_TYPE:-ed25519}
+if [ ! -f /nso/etc/ssh/ssh_host_${SSH_HOST_KEY_TYPE}_key ]; then
+    echo "No SSH key of type ${SSH_HOST_KEY_TYPE} found, generating one!"
     mkdir -p /nso/etc/ssh
-    ssh-keygen -m PEM -t rsa -f /nso/etc/ssh/ssh_host_rsa_key -N ''
+    ssh-keygen -m PEM -t ${SSH_HOST_KEY_TYPE} -f /nso/etc/ssh/ssh_host_${SSH_HOST_KEY_TYPE}_key -N ''
 fi
 # copy the (generated) SSH keys from the volume to config dir
 cp -pr /nso/etc/ssh /etc/ncs/
