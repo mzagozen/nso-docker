@@ -199,6 +199,10 @@ def write_job_set(name, versions, needs):
     with open("{}-all5.yaml".format(name), "w") as f:
         f.write("\n".join(map(lambda ver: formatter(ver.version, name, needs, ver.tot), f_major(5, versions))))
 
+    # all 6 versions
+    with open("{}-all6.yaml".format(name), "w") as f:
+        f.write("\n".join(map(lambda ver: formatter(ver.version, name, needs, ver.tot), f_major(6, versions))))
+
     # all tip-of-train versions
     with open("{}-tot.yaml".format(name), "w") as f:
         f.write("\n".join(map(lambda ver: formatter(ver.version, name, needs, ver.tot), f_is_tot(versions))))
@@ -210,6 +214,10 @@ def write_job_set(name, versions, needs):
     # all tip-of-train 5 versions
     with open("{}-tot5.yaml".format(name), "w") as f:
         f.write("\n".join(map(lambda ver: formatter(ver.version, name, needs, ver.tot), f_is_tot(f_major(5, versions)))))
+
+    # all tip-of-train 6 versions
+    with open("{}-tot6.yaml".format(name), "w") as f:
+        f.write("\n".join(map(lambda ver: formatter(ver.version, name, needs, ver.tot), f_is_tot(f_major(6, versions)))))
 
 def write_flat(filename, versions):
     with open(filename, "w") as f:
@@ -255,6 +263,18 @@ def write_multiver_test(filename, versions, needs):
         for vsn in versions:
             olds = []
             majmin = vsn.tup[0:2]
+
+            # if 6, upgrade from last 5.x release
+            if majmin[0] == 6:
+                all5 = list(f_major(5, versions))
+                if len(all5) >= 1:
+                    olds.append(all5[-1])
+
+            # if 6, upgrade from last 4.x release
+            if majmin[0] == 6:
+                all4 = list(f_major(4, versions))
+                if len(all4) >= 1:
+                    olds.append(all4[-1])
 
             # if 5, upgrade from last 4.x release
             if majmin[0] == 5:

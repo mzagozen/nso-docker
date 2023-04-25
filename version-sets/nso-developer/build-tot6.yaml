@@ -1,0 +1,5 @@
+build-6.0.2:
+  extends: .build
+  variables:
+    NSO_VERSION: "6.0.2"
+    NSO_VERSION_IS_TOT: "true"
