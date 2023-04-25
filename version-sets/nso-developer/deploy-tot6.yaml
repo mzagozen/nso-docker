@@ -1,5 +1,11 @@
-deploy-6.0.2:
+deploy-6.0.4:
   extends: .deploy
   variables:
-    NSO_VERSION: "6.0.2"
+    NSO_VERSION: "6.0.4"
+    NSO_VERSION_IS_TOT: "true"
+
+deploy-6.1:
+  extends: .deploy
+  variables:
+    NSO_VERSION: "6.1"
     NSO_VERSION_IS_TOT: "true"

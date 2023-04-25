@@ -22,26 +22,26 @@ deploy-5.4.8:
     NSO_VERSION: "5.4.8"
     NSO_VERSION_IS_TOT: "true"
 
-deploy-5.5.9:
+deploy-5.5.10:
   extends: .deploy
   variables:
-    NSO_VERSION: "5.5.9"
+    NSO_VERSION: "5.5.10"
     NSO_VERSION_IS_TOT: "true"
 
-deploy-5.6.11:
+deploy-5.6.12:
   extends: .deploy
   variables:
-    NSO_VERSION: "5.6.11"
+    NSO_VERSION: "5.6.12"
     NSO_VERSION_IS_TOT: "true"
 
-deploy-5.7.9:
+deploy-5.7.10:
   extends: .deploy
   variables:
-    NSO_VERSION: "5.7.9"
+    NSO_VERSION: "5.7.10"
     NSO_VERSION_IS_TOT: "true"
 
-deploy-5.8.7:
+deploy-5.8.8:
   extends: .deploy
   variables:
-    NSO_VERSION: "5.8.7"
+    NSO_VERSION: "5.8.8"
     NSO_VERSION_IS_TOT: "true"

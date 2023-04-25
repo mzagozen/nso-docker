@@ -2,4 +2,4 @@
 test-version-set:
   extends: .test-version-set
   variables:
-    VERSION_SET: "supported-nso"
+    VERSION_SET: "nso-developer"
