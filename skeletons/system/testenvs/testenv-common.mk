@@ -104,7 +104,7 @@ cli:
 
 runcmdC runcmdJ:
 	@if [ -z "$(CMD)" ]; then echo "CMD variable must be set"; false; fi
-	docker exec -t $(CNT_PREFIX)-nso$(NSO) bash -lc 'echo -e "$(CMD)" | ncs_cli --stop-on-error -$(subst runcmd,,$@)u admin'
+	docker exec -t $(CNT_PREFIX)-nso$(NSO) bash -lc 'echo -e "unhide debug\nunhide full\n$(CMD)" | ncs_cli --stop-on-error -$(subst runcmd,,$@)u admin'
 
 loadconf:
 	@if [ -z "$(FILE)" ]; then echo "FILE variable must be set"; false; fi
