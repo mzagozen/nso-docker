@@ -314,6 +314,7 @@ endif
     | =SSH_HOST_KEY_TYPE=  | enum    | ed25519* | Set the SSH host key type to ed2551, rsa or dsa (default changes to rsa if ssh_host_rsa_key is found) |
     | =CLI_STYLE=          | enum    | j        | Configure the default CLI style to 'j' or 'c'                                                         |
     | =XPATH_TRACE=        | boolean | false    | Enable XPath tracing                                                                                  |
+    | =DEVEL_LOG_LEVEL=    | enum    | info     | Configure the devel.log level to 'info' or 'trace'                                                    |
     | =AUTO_WIZARD=        | boolean | true     | Disable CLI auto-wizard by setting to 'false'                                                         |
 
     Injecting a ~ncs.conf~ and enabling configuration mangling will also accept the same environment variables as input.

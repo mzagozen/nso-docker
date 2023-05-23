@@ -415,6 +415,14 @@ On startup, when neither `/etc/ncs/ncs.conf` (a directly mounted config) or `/ns
 
 
 <tr>
+<td class="org-left"><code>DEVEL_LOG_LEVEL</code></td>
+<td class="org-left">enum</td>
+<td class="org-left">info</td>
+<td class="org-left">Configure the devel.log level to &rsquo;info&rsquo; or &rsquo;trace&rsquo;</td>
+</tr>
+
+
+<tr>
 <td class="org-left"><code>AUTO_WIZARD</code></td>
 <td class="org-left">boolean</td>
 <td class="org-left">true</td>
