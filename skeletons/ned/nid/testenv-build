@@ -78,6 +78,9 @@ for PKG_SRC in $(find /src/packages /src/test-packages -mindepth 1 -maxdepth 1 -
     if [ -f "${PKG_DIR}pyvenv-dev/bin/activate" ]; then echo "Activating ${PKG_DIR}pyvenv-dev"; . ${PKG_DIR}pyvenv-dev/bin/activate;
     elif [ -f "${PKG_DIR}pyvenv/bin/activate" ]; then echo "Activating ${PKG_DIR}pyvenv"; . ${PKG_DIR}pyvenv/bin/activate; fi;
     make -C /var/opt/ncs/packages/${PKG_NAME}/src || exit 1;
+    if make -C /var/opt/ncs/packages/${PKG_NAME}/src -n compose >/dev/null 2>&1; then
+        make -C /var/opt/ncs/packages/${PKG_NAME}/src -j `nproc` compose || exit 1;
+    fi
     if [ -f "${PKG_DIR}pyvenv-dev/bin/activate" ] || [ -f "${PKG_DIR}pyvenv/bin/activate" ]; then deactivate; fi;
     OUTPUT_PATH=${PKG_DIR}/ make -f /src/nid/bmd.mk -C ${PKG_SRC} build-meta-data.xml;
 done
