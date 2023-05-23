@@ -63,7 +63,7 @@ debug-vscode:
 rebuild:
 	for NSO in $$(docker ps --format '{{.Names}}' --filter label=com.cisco.nso.testenv.name=$(CNT_PREFIX) --filter label=com.cisco.nso.testenv.type=nso); do \
 		echo "-- Rebuilding for NSO: $${NSO}"; \
-		docker run -t --rm -v $(PROJECT_DIR):/src --volumes-from $${NSO} -v $(CNT_PREFIX)-pip-cache:/root/.cache/pip --network=container:$${NSO} -e NSO=$${NSO} -e PACKAGE_RELOAD=$(PACKAGE_RELOAD) -e SKIP_LINT=$(SKIP_LINT) -e PKG_FILE=$(IMAGE_BASENAME)package:$(DOCKER_TAG) $(NSO_IMAGE_PATH)cisco-nso-dev:$(NSO_VERSION) /src/nid/testenv-build; \
+		docker run -t --rm -v $(PROJECT_DIR):/src --volumes-from $${NSO} -v $(CNT_PREFIX)-pip-cache:/root/.cache/pip --network=container:$${NSO} -e NSO=$${NSO} -e PACKAGE_RELOAD=$(PACKAGE_RELOAD) -e SKIP_LINT=$(SKIP_LINT) -e PKG_FILE=$(IMAGE_BASENAME)/package:$(DOCKER_TAG) $(NSO_IMAGE_PATH)cisco-nso-dev:$(NSO_VERSION) /src/nid/testenv-build; \
 	done
 
 # clean-rebuild - clean and rebuild from scratch
@@ -79,7 +79,7 @@ clean-rebuild:
 		echo "-- Cleaning NSO: $${NSO}"; \
 		docker run -t --rm -v $(PROJECT_DIR):/src --volumes-from $${NSO} $(NSO_IMAGE_PATH)cisco-nso-dev:$(NSO_VERSION) bash -lc 'rsync -aEim --delete /src/packages/. /src/test-packages/. /var/opt/ncs/packages/ >/dev/null'; \
 		echo "-- Copying in pristine included packages for NSO: $${NSO}"; \
-		docker run -t --rm --volumes-from $${NSO} $(IMAGE_BASENAME)build:$(DOCKER_TAG) cp -a /includes/. /var/opt/ncs/packages/; \
+		docker run -t --rm --volumes-from $${NSO} $(IMAGE_BASENAME)/build:$(DOCKER_TAG) cp -a /includes/. /var/opt/ncs/packages/; \
 	done
 	@echo "-- Done cleaning, rebuilding with forced package reload..."
 	$(MAKE) rebuild PACKAGE_RELOAD="true"
@@ -104,7 +104,7 @@ cli:
 
 runcmdC runcmdJ:
 	@if [ -z "$(CMD)" ]; then echo "CMD variable must be set"; false; fi
-	docker exec -t $(CNT_PREFIX)-nso$(NSO) bash -lc 'echo -e "$(CMD)" | ncs_cli --stop-on-error -$(subst runcmd,,$@)u admin'
+	docker exec -t $(CNT_PREFIX)-nso$(NSO) bash -lc 'echo -e "unhide debug\nunhide full\n$(CMD)" | ncs_cli --stop-on-error -$(subst runcmd,,$@)u admin'
 
 loadconf:
 	@if [ -z "$(FILE)" ]; then echo "FILE variable must be set"; false; fi
