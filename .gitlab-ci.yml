@@ -56,7 +56,7 @@ before_script:
     variables:
       - $CI_MODE == "mirror"
   script:
-    - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} ${CI_REGISTRY}
+    - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
     - mark_section_start build "Building base and dev image"
     - make build
     - mark_section_end build
@@ -81,7 +81,7 @@ before_script:
       - $CI_MODE == "mirror"
   script:
     - mark_section_start image-pull "Pulling images"
-    - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} ${CI_REGISTRY}
+    - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
     - if [ "${DOCKER_PUSH}" != "false" ]; then make pull; fi
     - mark_section_end image-pull
     - mark_section_start test "Testing images"
@@ -99,7 +99,7 @@ before_script:
       - $CI_MODE == "mirror"
   script:
     - mark_section_start image-pull "Pulling images"
-    - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} ${CI_REGISTRY}
+    - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
     - if [ "${DOCKER_PUSH}" != "false" ]; then make pull; fi
     - mark_section_end image-pull
     - mark_section_start image-push "Pushing images"
