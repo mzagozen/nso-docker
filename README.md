@@ -623,9 +623,14 @@ When no certificate is present, one will be generated. It is a self-signed certi
             -subj "/C=SE/ST=NA/L=/O=NSO/OU=WebUI/CN=Mr. Self-Signed"
 
 
-# Logrotate and other periodic tasks (cron)
+# Logging
 
-NSO places the logs in `/log` by default. NSO does not rotate the logs itself, but the installation does include a system `logrotate` configuration in `/etc/logrotate.d/ncs`. The `cron` installation in the base image schedules a `logrotate` run daily when enabled. The following environment variables control this functionality:
+NSO places the logs in `/log` by default. Different parts of the NSO application support different methods of exporting the log messages, but creating the log files on disk is supported for **all** out of the box. NSO in Docker provides tools and configuration that simplify log management in a non-ephemeral instance.
+
+
+## Logrotate and other periodic tasks (cron)
+
+NSO does not rotate the logs itself, but the installation does include a system `logrotate` configuration in `/etc/logrotate.d/ncs`. The `cron` installation in the base image schedules a `logrotate` run daily when enabled. The following environment variables control this functionality:
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
@@ -667,6 +672,17 @@ NSO places the logs in `/log` by default. NSO does not rotate the logs itself, b
 </table>
 
 `CRON_ENABLE` must be set to true when `LOGROTATE_ENABLE` is set to true. The startup script will report and stop startup if the condition is not satisfied.
+
+
+## Logging to container runtime
+
+A common pattern for applications running inside of a container is to print all log messages to stdout/stderr and let the container runtime handle persistence or forwarding to a central aggregator. NSO in Docker supports this for a subset of the NSO application logs - ncs.log, audit.log and devel.log, but **not** for package application logs like ncs-python-vm\*.log or ncs-java-vm.log. This feature is disabled by default. To enable it start the container with the `CONTAINER_LOG_ENABLE` variable set to true.
+
+    docker run -d --name nso -e CONTAINER_LOG_ENABLE=true my-prod-image:12345
+    # observe the logs
+    docker logs -f nso
+
+Note: the default log driver in Docker is JSON file with unlimited size for the container logs. The amount of log messages generated depends on the busyness of the NSO system, but please ensure your container runtime is configured correctly to avoid consuming all available space for longer running containers.
 
 
 # NSO upgrades, downgrades, YANG model changes and package modifications
