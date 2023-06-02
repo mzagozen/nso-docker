@@ -48,7 +48,11 @@ sigterm_handler() {
 start_nso() {
     set -m
     # output logs to stdout a la container style
-    ncs --cd ${NCS_RUN_DIR} -c ${NCS_CONFIG_DIR}/ncs.conf --foreground -v --with-package-reload-force &
+    if [ "${CONTAINER_LOG_ENABLE}" == "true" ]; then
+        verbose="--verbose"
+        echo "run-nso.sh: NSO will log to container runtime through stdout"
+    fi
+    ncs --cd ${NCS_RUN_DIR} -c ${NCS_CONFIG_DIR}/ncs.conf --foreground ${verbose} --with-package-reload-force &
     NSO_PID="$!"
     set +m
 }
