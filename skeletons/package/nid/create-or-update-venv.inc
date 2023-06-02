@@ -9,6 +9,8 @@ create_or_update_venv () {
     local req_txt=$2
     local venv=$3
     local clear=${4:-true}
+    local saved_options=$(set +o)
+    set -o errexit
     pushd "${pkg_dir}" > /dev/null
     if [ -f "${req_txt}" ]; then
         if [ ! -f "${venv}/pyvenv.cfg" ] || [ "${clear}" == "true" ]; then
@@ -17,10 +19,6 @@ create_or_update_venv () {
             # like pylint (which is built with the venv activated), without also having
             # to install it in our venv
             python3 -m venv --symlinks --system-site-packages $([ "${clear}" == "true" ] && echo "--clear") "${venv}"
-            # venv starts by resolving the symlink of its own location, thus doesn't
-            # think /var/opt/ncs/packages/ is its location but /src/(test-)?packages
-            # - we fix that with sed by replacing the path in executables in venv/bin ...
-            find "${venv}"/bin -type f -print0 | xargs -0 sed -i -e 's,/src/\(test-\)\?packages/,/var/opt/ncs/packages/,'
             . "${venv}"/bin/activate
             # upgrade pip to latest version (in the venv) to deal with correct
             # downloading of wheel packages
@@ -37,6 +35,13 @@ create_or_update_venv () {
         pip3 install -r "${req_txt}" --ignore-installed
         chown -R $(ls -nd /src | awk '{ print $3":"$4 }') "${venv}"
         deactivate
+        # venv starts by resolving the symlink of its own location, thus doesn't
+        # think /var/opt/ncs/packages/ is its location but /src/(test-)?packages
+        # - we fix that with sed by replacing the path in executables in
+        # venv/bin, but only after we installed everything because otherwise we
+        # may use the system pip, not the one we just installed in the venv
+        find "${venv}"/bin -type f -print0 | xargs -0 sed -i -e 's,/src/\(test-\)\?packages/,/var/opt/ncs/packages/,'
     fi
     popd > /dev/null
+    eval "${saved_options}"
 }
