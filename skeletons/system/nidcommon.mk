@@ -161,7 +161,7 @@ DOCKER_LABEL_ARG?=--label com.cisco.nso.testenv.name=$(CNT_PREFIX)
 DOCKER_ARGS+=$(DOCKER_PLATFORM_ARG)
 DOCKER_ARGS+=--network $(CNT_PREFIX) $(DOCKER_LABEL_ARG)
 # DEBUGPY?=$(PROJECT_NAME)
-DOCKER_NSO_ARGS=$(DOCKER_ARGS) --label com.cisco.nso.testenv.type=nso --volume /var/opt/ncs/packages -e DEBUGPY=$(DEBUGPY) --expose 5678 --publish-all
+DOCKER_NSO_ARGS=$(DOCKER_ARGS) --label com.cisco.nso.testenv.type=nso --volume /var/opt/ncs/packages -e DEBUGPY=$(DEBUGPY) --expose 5678 --publish-all -e DEVEL_LOG_LEVEL=trace
 
 # Determine which xargs we have. BSD xargs does not have --no-run-if-empty,
 # rather, it is the default behavior so the argument is simply superfluous. We
