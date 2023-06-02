@@ -89,6 +89,10 @@ RUN apt-get update \
   && usermod -a -G ncsadmin root \
   # Clean up logrotate config for system files (like apt, alternatives, ...)
   && rm /etc/logrotate.d/* \
+  # Set up logrotate to persist the state file in /log/logrotate.state
+  && sed -i 's!^\(/usr/sbin/logrotate\)\(.*\)!\1 -s /log/logrotate.state\2!' /etc/cron.daily/logrotate \
+  # Ensure /log always exists so the state file can be created
+  && mkdir -p /log \
   # Clean up system entries in cron.daily
   && find /etc/cron.daily/ -type f -not -name logrotate -exec rm {} +
 
