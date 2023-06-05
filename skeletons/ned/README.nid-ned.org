@@ -94,6 +94,7 @@
    - =shell=: Get an interactive =bash= shell in the =testnso= container
    - =dev-shell=: Get an interactive =bash= shell in a container using the -dev image. The container is attached to the network namespace and volumes of the =testnso= container.
    - =cli=: Get an interactive NSO CLI (=ncs_cli=) in the =testnso= container
+   - =pycli=: Get an interactive NSO Python shell (IPython) attached to the NSO container. See https://github.com/NSO-developer/ncs_pycli
    - =runcmdC= / =runcmdJ=: Run a command with =ncs_cli=, provide the command through the environment variable =CMD=
      - the command is expected in the C-style CLI syntax for =runcmdC= or J-style CLI with =runcmdJ=
      - the runcmd targets can be called to run a command, from an interactive shell like ~make runcmdJ CMD="show ncs-state version"~
@@ -230,6 +231,9 @@
   #+BEGIN_SRC text
     -r requirements.txt
   #+END_SRC
+
+* NSO Python Shell
+  If you want to execute short snippets of Python code using various NSO Python APIs, you can use the ~make pycli~ recipe within the context of a testenv. This will start an IPython interpreter in a separate container connected to the same network stack as the NSO container and then load the =ncs_pycli= package to start a MAAPI session and set up the basic MAAGIC objects - =root= and =trans=. For more usage examples see https://github.com/NSO-developer/ncs_pycli.
 
 * Python Remote Debugging
   If your packages contain Python code, you can connect a remote debugger to individual Python VMs. The base NSO in Docker images include [[https://github.com/microsoft/debugpy]] which implements the Debug Adapter Protocol. Any compatible DAP client may attach the process on the exposed port (tcp/5678). In VSCode the =Python= extension available at [[https://marketplace.visualstudio.com/items?itemName=ms-python.python]] provides the functionality. The NSO containers started by the skeleton Makefiles will automatically expose the port on a high-numbered port assigned by the docker engine.

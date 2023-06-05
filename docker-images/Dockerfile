@@ -106,6 +106,13 @@ SHELL ["/bin/sh", "-lc"]
 
 FROM deb_base AS dev
 
+# Include the ncs_pycli package downloaded from
+# https://github.com/NSO-developer/ncs_pycli in order to avoid breaking the
+# build if:
+# 1. the package disappears from PyPI,
+# 2. the project repository disappears from GitHub.
+COPY ncs_pycli-1.3.4.zip /tmp
+
 RUN echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sources.list.d/buster-backports.list \
   && apt-get update \
   && apt-get install -qy \
@@ -137,6 +144,7 @@ RUN echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sou
   && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 3 \
   && update-alternatives --install /usr/bin/python python /usr/bin/python3.7 3 \
   && update-alternatives --install /usr/bin/pylint pylint /usr/bin/pylint3 1 \
+  && pip3 install /tmp/ncs_pycli-1.3.4.zip \
   && apt-get -qy autoremove \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /root/.cache
