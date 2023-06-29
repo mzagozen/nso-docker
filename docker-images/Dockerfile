@@ -1,4 +1,4 @@
-FROM debian:buster AS nso_install
+FROM debian:bookworm AS nso_install
 
 RUN apt-get update \
   && apt-get install -qy \
@@ -59,7 +59,7 @@ RUN \
      /etc/ncs/ncs.conf.in
 
 
-FROM debian:buster AS deb_base
+FROM debian:bookworm AS deb_base
 
 RUN apt-get update \
   && apt-get install -qy \
@@ -78,7 +78,7 @@ RUN apt-get update \
   xsltproc \
   # install debugpy via pip3, then immediately remove pip3 from base
   && apt-get install -qy --no-install-recommends python3-pip \
-  && pip3 install debugpy \
+  && pip3 install --break-system-packages debugpy \
   && apt-get -qy purge python3-pip \
   && apt-get -qy autoremove \
   && apt-get clean \
@@ -113,8 +113,7 @@ FROM deb_base AS dev
 # 2. the project repository disappears from GitHub.
 COPY ncs_pycli-1.3.4.zip /tmp
 
-RUN echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sources.list.d/buster-backports.list \
-  && apt-get update \
+RUN apt-get update \
   && apt-get install -qy \
      ant \
      curl \
@@ -123,7 +122,7 @@ RUN echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sou
      git \
      iputils-tracepath \
      jq \
-     liblog4cplus-1.1-9 \
+     liblog4cplus-2.0.5 \
      libuv1 \
      libxml2-utils \
      man \
@@ -133,18 +132,14 @@ RUN echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sou
      python3-pip \
      python3-venv \
      python3-wheel \
+     python3-ncclient \
      rsync \
      snmp \
      sshpass \
      vim-tiny \
      ipython3 \
-  && apt-get install -qy -t buster-backports \
-     # paramiko is required by netconf-console
-     python3-paramiko \
-  && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 3 \
-  && update-alternatives --install /usr/bin/python python /usr/bin/python3.7 3 \
-  && update-alternatives --install /usr/bin/pylint pylint /usr/bin/pylint3 1 \
-  && pip3 install /tmp/ncs_pycli-1.3.4.zip \
+  && update-alternatives --install /usr/bin/python python /usr/bin/python3 1 \
+  && pip3 install --break-system-packages /tmp/ncs_pycli-1.3.4.zip \
   && apt-get -qy autoremove \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /root/.cache
