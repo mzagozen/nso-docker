@@ -379,7 +379,7 @@ test-http-disabled:
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	docker run -td $(DOCKER_PLATFORM_ARG) --name $(CNT_PREFIX)-$@ --label com.cisco.nso.testenv.name=$(CNT_PREFIX) $(DOCKER_REGISTRY)cisco-nso-base:$(DOCKER_TAG)
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc "ncs --wait-started 600"
-	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Connection refused"
+	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Failed to connect"
 	@echo "Connection to HTTP TCP port 80 was refused, I'm happy"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 
@@ -389,7 +389,7 @@ test-https-disabled:
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	docker run -td $(DOCKER_PLATFORM_ARG) --name $(CNT_PREFIX)-$@ --label com.cisco.nso.testenv.name=$(CNT_PREFIX) $(DOCKER_REGISTRY)cisco-nso-base:$(DOCKER_TAG)
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc "ncs --wait-started 600"
-	$(DEVRUN) curl --noproxy '*' https://$$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Connection refused"
+	$(DEVRUN) curl --noproxy '*' https://$$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Failed to connect"
 	@echo "Connection to HTTPS TCP port 443 was refused, I'm happy"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 
@@ -652,7 +652,7 @@ test-config-on-volume:
 	@echo "-- Wait for NSO in container to start"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
 	@echo "-- Verify HTTP is disabled"
-	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Connection refused"
+	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Failed to connect"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	-docker network rm $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	-docker volume rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
@@ -694,7 +694,7 @@ test-mounted-config:
 	@echo "-- Wait for NSO in container to start"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
 	@echo "-- Verify HTTP is disabled"
-	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Connection refused"
+	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Failed to connect"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	-docker network rm $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	rm -rf tmp-$@
