@@ -2,7 +2,8 @@
 #
 
 set timeout 5
-spawn ssh -o IdentityAgent=none -o IdentitiesOnly=yes -F /dev/null -l admin -i test_ssh_key_$::env(KEY_TYPE) -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $::env(NSO_IP)
+# Allow ssh-rsa key types regardless of actual key type used, because it makes the script simpler
+spawn ssh -o IdentityAgent=none -o IdentitiesOnly=yes -o "HostKeyAlgorithms +ssh-rsa" -o "PubkeyAcceptedKeyTypes +ssh-rsa" -F /dev/null -l admin -i test_ssh_key_$::env(KEY_TYPE) -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $::env(NSO_IP)
 expect {
     -re "connected from.*using ssh" { send -- "exit\r" }
     timeout { exit 1 }
