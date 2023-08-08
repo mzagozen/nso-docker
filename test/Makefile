@@ -297,19 +297,20 @@ test-admin-user-custom:
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 
 
+test-admin-user-sshkey: KEY_TYPE=$(shell if [ $(NSO_VERSION_MAJOR) -gt 5 ] || ( [ $(NSO_VERSION_MAJOR) -eq 5 ] && [ $(NSO_VERSION_MINOR) -gt 3 ] ); then echo "ed25519"; else echo "rsa"; fi)
 test-admin-user-sshkey:
-	@echo "\n== Verify adding admin user with SSH key works"
+	@echo "\n== Verify adding admin user with SSH key ($(KEY_TYPE)) works"
 	@echo "-- Clean any already running containers with 'our' name"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	@echo "-- Start NSO container with admin password"
-	docker run -td $(DOCKER_PLATFORM_ARG) --name $(CNT_PREFIX)-$@ --label com.cisco.nso.testenv.name=$(CNT_PREFIX) -e ADMIN_SSHKEY="$(shell cat test_ssh_key.pub)" $(CNT_PREFIX)-test-cisco-nso-$(DOCKER_TAG)
+	docker run -td $(DOCKER_PLATFORM_ARG) --name $(CNT_PREFIX)-$@ --label com.cisco.nso.testenv.name=$(CNT_PREFIX) -e ADMIN_SSHKEY="$(shell cat test_ssh_key_$(KEY_TYPE).pub)" $(CNT_PREFIX)-test-cisco-nso-$(DOCKER_TAG)
 	@echo "-- Wait for NSO in container to start"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
 	@echo "-- Test that SSH login works"
-	chmod 0600 test_ssh_key
+	chmod 0600 test_ssh_key_$(KEY_TYPE)
 # prevent SSH from reading the normal SSH config of the user running the test
 # suite through -F /dev/null and prevent ssh-agent use
-	NSO_IP=$$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $(CNT_PREFIX)-$@) expect expect-ssh-login-key.script
+	NSO_IP=$$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $(CNT_PREFIX)-$@) KEY_TYPE=$(KEY_TYPE) expect expect-ssh-login-key.script
 	@echo "-- Remove the container"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 
