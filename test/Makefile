@@ -48,6 +48,8 @@ endif
 
 IPV6?=true
 
+DEVRUN=docker run --rm $(DOCKER_PLATFORM_ARG) --network container:$(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG)
+
 .PHONY: test-post-start-script test-cdb-default
 
 build-test-image:
@@ -344,8 +346,8 @@ test-ssh-custom-port:
 	@echo "-- Wait for NSO in container to start"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
 	@echo "-- Test that SSH is listening on expected port"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) ssh-keyscan -p 2024 $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) | grep "Connection refused"; test $$? -eq 1
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) ssh-keyscan -p 2024 $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@) | grep "Connection refused"; test $$? -eq 1
+	$(DEVRUN) ssh-keyscan -p 2024 $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) | grep "Connection refused"; test $$? -eq 1
+	$(DEVRUN) ssh-keyscan -p 2024 $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@) | grep "Connection refused"; test $$? -eq 1
 	@echo "-- Remove the container"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	-docker network rm $(CNT_PREFIX)-$@ >/dev/null 2>&1
@@ -363,9 +365,9 @@ test-netconf:
 	@echo "-- Wait for NSO in container to start"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
 	@echo "-- Test that NETCONF works on port 830"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) netconf-console --host $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) --port 830 --hello >/dev/null
+	$(DEVRUN) netconf-console --host $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) --port 830 --hello >/dev/null
 	@echo "-- NETCONF <hello> received"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) netconf-console --host $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@) --port 830 --hello >/dev/null
+	$(DEVRUN) netconf-console --host $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@) --port 830 --hello >/dev/null
 	@echo "-- NETCONF <hello> received over IPv6"
 	@echo "-- Remove the container"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
@@ -377,7 +379,7 @@ test-http-disabled:
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	docker run -td $(DOCKER_PLATFORM_ARG) --name $(CNT_PREFIX)-$@ --label com.cisco.nso.testenv.name=$(CNT_PREFIX) $(DOCKER_REGISTRY)cisco-nso-base:$(DOCKER_TAG)
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc "ncs --wait-started 600"
-	curl --noproxy '*' $$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Connection refused"
+	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Failed to connect"
 	@echo "Connection to HTTP TCP port 80 was refused, I'm happy"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 
@@ -387,7 +389,7 @@ test-https-disabled:
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	docker run -td $(DOCKER_PLATFORM_ARG) --name $(CNT_PREFIX)-$@ --label com.cisco.nso.testenv.name=$(CNT_PREFIX) $(DOCKER_REGISTRY)cisco-nso-base:$(DOCKER_TAG)
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc "ncs --wait-started 600"
-	curl --noproxy '*' https://$$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Connection refused"
+	$(DEVRUN) curl --noproxy '*' https://$$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Failed to connect"
 	@echo "Connection to HTTPS TCP port 443 was refused, I'm happy"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 
@@ -401,16 +403,16 @@ test-http-enabled:
 	@echo "-- Start NSO container with admin password"
 	docker run -td $(DOCKER_PLATFORM_ARG) --name $(CNT_PREFIX)-$@ --label com.cisco.nso.testenv.name=$(CNT_PREFIX) --network $(CNT_PREFIX)-$@ --env HTTP_ENABLE=true --env ADMIN_PASSWORD=admin $(DOCKER_REGISTRY)cisco-nso-base:$(DOCKER_TAG)
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc "ncs --wait-started 600"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
+	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
 	@echo "Connection to HTTP (TCP port 80) was accepted, I'm happy"
 	@echo "\n== Verify that the HTTP webUI works over IPv6 when enabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl --noproxy '*' -g http://[$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@)] >/dev/null
+	$(DEVRUN) curl --noproxy '*' -g http://[$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@)] >/dev/null
 	@echo "Connection to HTTP (TCP port 80) via IPv6 was accepted, I'm happy"
 	@echo "\n== Verify that RESTCONF works over HTTP when enabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl -u admin:admin --noproxy '*' -H "Accept: application/yang-data+xml" http://$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@)/restconf | grep yang-library-version >/dev/null
+	$(DEVRUN) curl -u admin:admin --noproxy '*' -H "Accept: application/yang-data+xml" http://$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@)/restconf | grep yang-library-version >/dev/null
 	@echo "Connection to RESTCONF (TCP port 80) was accepted, I'm happy"
 	@echo "\n== Verify that RESTCONF works over HTTP and IPv6 when enabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl -u admin:admin --noproxy '*' -H "Accept: application/yang-data+xml" -g http://[$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@)]/restconf | grep yang-library-version >/dev/null
+	$(DEVRUN) curl -u admin:admin --noproxy '*' -H "Accept: application/yang-data+xml" -g http://[$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@)]/restconf | grep yang-library-version >/dev/null
 	@echo "Connection to RESTCONF (TCP port 80) via IPv6 was accepted, I'm happy"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	-docker network rm $(CNT_PREFIX)-$@ >/dev/null 2>&1
@@ -425,16 +427,16 @@ test-https-enabled:
 	@echo "-- Start NSO container with admin password"
 	docker run -td $(DOCKER_PLATFORM_ARG) --name $(CNT_PREFIX)-$@ --label com.cisco.nso.testenv.name=$(CNT_PREFIX) --network $(CNT_PREFIX)-$@ --env HTTPS_ENABLE=true --env ADMIN_PASSWORD=admin $(DOCKER_REGISTRY)cisco-nso-base:$(DOCKER_TAG)
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc "ncs --wait-started 600"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl --noproxy '*' --insecure https://$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
+	$(DEVRUN) curl --noproxy '*' --insecure https://$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
 	@echo "Connection to HTTPS (TLS/TCP port 443) was accepted, I'm happy"
 	@echo "\n== Verify that the HTTPS webUI works over IPv6 when enabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl --noproxy '*' --insecure -g https://[$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@)] >/dev/null; \
+	$(DEVRUN) curl --noproxy '*' --insecure -g https://[$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@)] >/dev/null; \
 	echo "Connection to HTTPS (TLS/TCP port 443) via IPv6 was accepted, I'm happy"
 	@echo "\n== Verify that RESTCONF works over HTTPS when enabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl -u admin:admin --noproxy '*' --insecure -H "Accept: application/yang-data+xml" https://$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@)/restconf | grep yang-library-version >/dev/null
+	$(DEVRUN) curl -u admin:admin --noproxy '*' --insecure -H "Accept: application/yang-data+xml" https://$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@)/restconf | grep yang-library-version >/dev/null
 	@echo "Connection to RESTCONF (TLS/TCP port 443) was accepted, I'm happy"
 	@echo "\n== Verify that RESTCONF works over HTTPS and IPv6 when enabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl -u admin:admin --noproxy '*' --insecure -H "Accept: application/yang-data+xml" -g https://[$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@)]/restconf | grep yang-library-version >/dev/null
+	$(DEVRUN) curl -u admin:admin --noproxy '*' --insecure -H "Accept: application/yang-data+xml" -g https://[$$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(CNT_PREFIX)-$@)]/restconf | grep yang-library-version >/dev/null
 	@echo "Connection to RESTCONF (TCP port 443) via IPv6 was accepted, I'm happy"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	-docker network rm $(CNT_PREFIX)-$@ >/dev/null 2>&1
@@ -632,7 +634,7 @@ test-config-on-volume:
 	@echo "-- Wait for NSO in container to start"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
 	@echo "-- Verify HTTP is enabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
+	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
 	@echo "-- Copy the config file to the persistent volume"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'cp /etc/ncs/ncs.conf /nso/etc/ncs.conf'
 	@echo "-- Stopping cisco-nso test container -------------------------------------------"
@@ -642,7 +644,7 @@ test-config-on-volume:
 	@echo "-- Wait for NSO in container to start"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
 	@echo "-- Verify HTTP is enabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
+	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
 	@echo "-- Stopping cisco-nso test container -------------------------------------------"
 	-docker rm -f $(CNT_PREFIX)-$@
 	@echo "-- Start NSO, forcing config mangling and explicitly disable HTTP"
@@ -650,7 +652,7 @@ test-config-on-volume:
 	@echo "-- Wait for NSO in container to start"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
 	@echo "-- Verify HTTP is disabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Connection refused"
+	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Failed to connect"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	-docker network rm $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	-docker volume rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
@@ -667,7 +669,7 @@ test-mounted-config:
 	@echo "-- Wait for NSO in container to start"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
 	@echo "-- Verify HTTP is enabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
+	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
 	@echo "-- Copy the config file to our temp dir"
 	mkdir -p tmp-$@
 	docker cp $(CNT_PREFIX)-$@:/etc/ncs/ncs.conf tmp-$@/ncs.conf
@@ -681,7 +683,7 @@ test-mounted-config:
 	@echo "-- Wait for NSO in container to start"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
 	@echo "-- Verify HTTP is enabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
+	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) >/dev/null
 	@echo "-- Stopping cisco-nso test container -------------------------------------------"
 	-docker rm -f $(CNT_PREFIX)-$@
 	@echo "-- Start NSO, forcing config mangling and explicitly disable HTTP"
@@ -692,7 +694,7 @@ test-mounted-config:
 	@echo "-- Wait for NSO in container to start"
 	docker exec -t $(CNT_PREFIX)-$@ bash -lc 'ncs --wait-started 600'
 	@echo "-- Verify HTTP is disabled"
-	docker run --rm $(DOCKER_PLATFORM_ARG) --network $(CNT_PREFIX)-$@ $(DOCKER_REGISTRY)cisco-nso-dev:$(DOCKER_TAG) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Connection refused"
+	$(DEVRUN) curl --noproxy '*' $$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CNT_PREFIX)-$@) 2>&1 | grep "Failed to connect"
 	-docker rm -f $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	-docker network rm $(CNT_PREFIX)-$@ >/dev/null 2>&1
 	rm -rf tmp-$@
