@@ -128,7 +128,7 @@ RUN apt-get update \
      man \
      mypy \
      openssl \
-     pylint3 \
+     pylint \
      python3-pip \
      python3-venv \
      python3-wheel \
