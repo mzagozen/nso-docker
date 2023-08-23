@@ -14,7 +14,12 @@ COPY $NSO_INSTALL_FILE /tmp/nso
 
 RUN sh /tmp/nso --system-install --non-interactive --run-dir /nso/run --log-dir /log \
   && mv /etc/ncs/ncs.conf /etc/ncs/ncs.conf.in \
-  && sed -i -e 's/exec python -u/exec python3 -u/' /opt/ncs/current/bin/ncs-start-python-vm
+  && sed -i -e 's/exec python -u/exec python3 -u/' /opt/ncs/current/bin/ncs-start-python-vm \
+# In NSO 5.3+ Java 6 and 7 are removed as supported Java versions. These
+# versions are also not supported in the current OpenJDK 17 installed in the
+# container image. We override the (Ant) defaults used by NSO Java packages for
+# NSO older than 5.3
+  && sed -i -e 's/\(ncs_java_[^_]\+_ver=\)1\.[67]/\11.8/' /opt/ncs/current/etc/ncs/java.properties
 
 FROM nso_install AS nso_stripped
 
