@@ -16,18 +16,6 @@ push-4.7.11:
     NSO_VERSION: "4.7.11"
     NSO_VERSION_IS_TOT: "true"
 
-push-5.1.4:
-  extends: .push
-  variables:
-    NSO_VERSION: "5.1.4"
-    NSO_VERSION_IS_TOT: "false"
-
-push-5.1.5:
-  extends: .push
-  variables:
-    NSO_VERSION: "5.1.5"
-    NSO_VERSION_IS_TOT: "false"
-
 push-5.1.6:
   extends: .push
   variables:

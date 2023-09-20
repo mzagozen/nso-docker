@@ -22,22 +22,6 @@ test-4.7.11:
   needs:
     - build-4.7.11
 
-test-5.1.4:
-  extends: .test
-  variables:
-    NSO_VERSION: "5.1.4"
-    NSO_VERSION_IS_TOT: "false"
-  needs:
-    - build-5.1.4
-
-test-5.1.5:
-  extends: .test
-  variables:
-    NSO_VERSION: "5.1.5"
-    NSO_VERSION_IS_TOT: "false"
-  needs:
-    - build-5.1.5
-
 test-5.1.6:
   extends: .test
   variables:

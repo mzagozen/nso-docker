@@ -1,15 +1,3 @@
-deploy-5.1.4:
-  extends: .deploy
-  variables:
-    NSO_VERSION: "5.1.4"
-    NSO_VERSION_IS_TOT: "false"
-
-deploy-5.1.5:
-  extends: .deploy
-  variables:
-    NSO_VERSION: "5.1.5"
-    NSO_VERSION_IS_TOT: "false"
-
 deploy-5.1.6:
   extends: .deploy
   variables:
