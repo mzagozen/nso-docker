@@ -4,7 +4,12 @@
 
 ![img](./nso-in-docker-logo.png)
 
-NSO in Docker is a project created by Cisco to enable users of NSO to easily run NSO in Docker.
+NSO in Docker is an open source project to enable users of NSO to easily run NSO in Docker.
+
+**NOTE**: There are official Cisco NSO container images offered for download from <https://software.cisco.com>, which is entirely different from NSO in Docker. See the [26](#org81f51bf).
+
+
+## Downloading for internal Cisco users
 
 For internal Cisco users; ready made container images built from this repository are available at <https://containers.cisco.com/organization/nso-docker>
 
@@ -26,6 +31,8 @@ This repository contains all you need to build Docker images out of Cisco NSO. I
     -   can be used directly to compile packages and similar
 
 The development image can be used immediately, for example as the image for a CI docker container runner to use for running CI jobs that involve compilation of NSO packages and similar. The production image is intended to be used as a base image on which you add your own packages, like NEDs and your service packages, to produce a final image for your environment.
+
+In addition there are some pre-canned git project repository skeletons that help you to quickly establish a project structure and unlock multiple advanced features, like rebuilding packages and reloading in a running NSO container, automatic CI jobs etc. See the [NID skeletons](./skeletons/) for how to get started developing in the NID ecosystem.
 
 
 # How and why?
@@ -87,8 +94,8 @@ See the [NID skeletons](./skeletons/) for how to get started developing in the N
 NSO in Docker runs on:
 
 -   Linux
--   Mac OS X, see [Mac OS X support](#org91ffb29) for more information
--   Windows, see [Windows Support](#orgbcd49a9) for more information
+-   Mac OS X, see [Mac OS X support](#org9ca6000) for more information
+-   Windows, see [Windows Support](#orgbfbacdd) for more information
 
 To build these images, you need:
 
@@ -289,7 +296,7 @@ The normal configuration mangling will NOT be applied to the mounted `/etc/ncs/n
 
 NOTE: the mangling will be directly applied to the mounted file and modify it. Many of the mangling operations are not idempotently implemented, so this will likely break things. If you want to supply a configuration file and mangle it on startup, you probably want to mount it to `/etc/ncs/ncs.conf.in`.
 
-It is entirely up to you to manage your `ncs.conf` and make sure that it is correct. See the section [6.3.4](#org7c11b74).
+It is entirely up to you to manage your `ncs.conf` and make sure that it is correct. See the section [6.3.4](#org41967e4).
 
 
 ### Injecting ncs.conf through a persistent volume
@@ -1015,6 +1022,55 @@ What works:
 To build, you need `make` and Docker executable available in your preferred WSL2 distro. To test, there are some additional dependencies (same as Linux).
 
 If you notice any issues, please open an issue.
+
+
+# Comparison of NSO in Docker and the official Cisco NSO container images
+
+Perhaps one of the largest differences between NSO in Docker and the official Cisco container images is that beyond offering bare container images, NSO in Docker also contain a number of pre-canned git project skeletons to structure your development and testing. The project skeletons has a certain directory and file structure, together with CI configuration files, scripts and Makefiles to enable efficient container centric development and testing. For the official Cisco container images, you need to write all of that yourself.
+
+-   base image:
+    -   NSO in Docker is based on Debian, currently version 12 / bookworm
+    -   Cisco official NSO container images are based on RedHat UBI v9
+-   cost:
+    -   NSO in Docker itself is free, while obviously Cisco NSO is a paid product
+    -   Cisco official NSO container images do not cost extra, they are just another distribution form for Cisco NSO
+-   licensing:
+    -   Cisco NSO is naturally a part both of the NSO in Docker and Cisco official container images and is a paid product
+    -   NSO in Docker is based on Debian and apart from Cisco NSO itself, all other software packages come from the official Debian repository. Debian conforms to stringent requirements on redistribution and related aspects, documented in the Debian Free Software Guidelines, see <https://www.debian.org/social_contract#guidelines> and the social contract <https://lists.debian.org/debian-announce/1997/msg00017.html>
+    -   The Cisco official NSO container images, apart from Cisco NSO itself, are based on RedHat UBI and abide by that license and possibly others. Inquire Cisco about the specifics.
+-   package availability:
+    -   NSO in Docker offers the full selection of Debian, with currently over 60000 packages
+    -   Cisco official NSO container images are based on RedHat UBI v9, which has about 2000 packages via dnf
+-   transparency:
+    -   NSO in Docker is completely open source and you build the images yourself so you know exactly what they contain
+    -   The exact content of Cisco official NSO container images is not publicly documented. Normal container centric procedures like scanning the image content can be used to survey the content of the image.
+-   support:
+    -   NSO in Docker is not supported by Cisco nor any other company or organization. The community might be helpful in answering questions but you are ultimately in charge of building your images. Since NSO in Docker is open source, you can patch and rebuild the images as you see fit.
+    -   Cisco official NSO container images, like NSO or any other Cisco product, are supported by Cisco. You can open tickets and receive timely support to support your business needs.
+-   image layer reuse:
+    -   NSO in Docker have been constructed carefully to place NSO itself as the last layer of the image, making it possible to reuse other layers
+        -   for example, if you build NSO in Docker images for both NSO 6.1.3 and 6.2.1, all the bottom layers will be shared and only the last layer that contains Cisco NSO itself will differ between the images
+    -   Cisco official NSO container images are flattened into a single image layer with no reuse between NSO versions
+-   CI testing
+    -   NSO in Docker comes with GitLab CI config to automatically build and test in CI
+
+The NSO in Docker skeletons offer a common way of working for good developer experience (DX). Let&rsquo;s say you have a NSO service package called `my-service-pkg`. Build it NID-style with:
+
+    cp -av nso-docker/skeletons/package/. my-service
+    mv my-service-pkg my-service/packages/
+    cd my-service
+    make build NSO_VERSION=6.2.1
+
+Then start a test environment:
+
+    cd testenvs/quick
+    make start
+    make test # run tests defined in testenv Makefile
+    make cli # enter the NSO CLI and so some stuff
+
+You can make changes to the source code of your package and quickly reload them in the running container with `make rebuild`. Compared to a plain container image build + restarting the entire software stack, this will tremendously speed up the development cycle.
+
+NSO in Docker comes with a configuration file for GitLab CI. For the vast majority of use cases, it works entirely without modifications. It builds the NSO packages, starts a test environment and runs the tests. The test environment and tests themselves are specified separately in a way that makes the CI environment and the local test environment highly conformant, so that there are no surprises. What you see in your local test environment when developing is the same that happens in CI! No more debugging of non-reproducible CI jobs! You can easily extend the CI configuration with multiple jobs to produce complex CI workflows. The CI configuration reuses NSO version definitions from your central nso-docker repo to reduce ongoing work when upgrading NSO versions.
 
 
 # FAQ / Questions and answers
