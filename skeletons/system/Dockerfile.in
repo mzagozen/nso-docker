@@ -4,6 +4,43 @@ ARG NSO_VERSION
 # DEP_START
 # DEP_END
 
+# A package may contain a requirements(-dev)?.txt file with additional Python
+
+# dependencies. These are installed into a package-specific venv. We usually do
+# not modify the requirements.txt files often so it makes sense to cache the
+# built venvs. This is achieved by building the venvns in a separate stage where
+# the only files copied are the NID scripts and the requirements(-dev)?.txt files.
+FROM ${NSO_IMAGE_PATH}cisco-nso-dev:${NSO_VERSION} AS build-pyvenv
+
+COPY /nid /src/nid
+# Note: the simplest way of copying the requirements(-dev)?.txt files would be if
+# the Dockerfile COPY instruction supported wildcards with recursive descent
+# for each requirements(-dev)?.txt file found, like 'COPY **/requirements.txt target'.
+# mzagozen has tried the following:
+# 1. COPY everything, then remove everything but requirements.txt and scripts with a RUN instruction
+# 2. bind mount the context (BuildKit feature) and only copy requirements.txt with
+# 2.1. cp
+# 2.2. rsync
+# In all cases the intermediate layer that contained the files produced a cache
+# miss when an unrelated change was made to the source tree. The only effective
+# method that takes advantage of caching is explict 'COPY
+# path/to/requirements.txt destination' instructions for each file. These are
+# inserted in here by the build script.
+# REQUIREMENTS_START
+# REQUIREMENTS_END
+
+# Build Python virtualenvs for our packages (not includes). As it isn't possible
+# to move a venv due to its use of absolute paths, we must pretend the packages
+# are all in /var/opt/ncs/packages, as that is the final location where they
+# will be placed. build-pyvenv fakes this by rewriting the path after building
+# the venv.
+# The "--mount=type=cache ..." option is a Docker BuildKit feature that mounts a
+# (cached) path into the build container. In this case we use it to cache files
+# downloaded by pip.
+RUN --mount=type=cache,target=/root/.cache/pip \
+  for PKG_SRC in $(find /src/packages /src/test-packages -mindepth 1 -maxdepth 1 -type d); do \
+  /src/nid/build-pyvenv ${PKG_SRC}; \
+  done
 
 # Compile local packages in the build stage
 FROM ${NSO_IMAGE_PATH}cisco-nso-dev:${NSO_VERSION} AS build
@@ -13,6 +50,7 @@ ARG PKG_FILE
 # DEP_INC_END
 
 COPY / /src
+COPY --from=build-pyvenv /src /src
 
 # Provide a fake environment for pylint and similar.
 #
@@ -37,19 +75,6 @@ RUN mkdir -p /var/opt/ncs/packages /includes /src/test-packages; \
     ln -s ${PKG_SRC} /src/packages 2>/dev/null; \
     ln -s ${PKG_SRC} /src/test-packages 2>/dev/null; \
   done; true
-
-# Build Python virtualenvs for our packages (not includes). As it isn't possible
-# to move a venv due to its use of absolute paths, we must pretend the packages
-# are all in /var/opt/ncs/packages, as that is the final location where they
-# will be placed. build-pyvenv fakes this by rewriting the path after building
-# the venv.
-# The "--mount=type=cache ..." option is a Docker BuildKit feature that mounts a
-# (cached) path into the build container. In this case we use it to cache files
-# downloaded by pip.
-RUN --mount=type=cache,target=/root/.cache/pip \
-  for PKG_SRC in $(find /src/packages /src/test-packages -mindepth 1 -maxdepth 1 -type d); do \
-  /src/nid/build-pyvenv ${PKG_SRC}; \
-  done
 
 # Compile packages and inject build-meta-data.xml if it doesn't exist. For each
 # package, detect if a python virtualenv is available and activate it if found.

@@ -35,13 +35,15 @@ test:
 	$(MAKE) testenv-stop
 
 
-Dockerfile: Dockerfile.in $(wildcard includes/*)
+Dockerfile: Dockerfile.in $(wildcard includes/*) $(wilcard packages/*/src/requirements*.txt) $(wildcard test-packages/*/src/requirements*.txt)
 	@echo "-- Generating Dockerfile"
 # Expand variables before injecting them into the Dockerfile as otherwise we
 # would have to pass all the variables as build-args which makes this much
 # harder to do in a generic manner. This works across GNU and BSD awk.
 	cp Dockerfile.in Dockerfile
 	for DEP_NAME in $$(ls includes/); do export DEP_URL=$$(awk '{ print "echo", $$0 }' includes/$${DEP_NAME} | $(SHELL) -); awk "/DEP_END/ { print \"FROM $${DEP_URL} AS $${DEP_NAME}\" }; /DEP_INC_END/ { print \"COPY --from=$${DEP_NAME} /var/opt/ncs/packages/ /includes/\" }; 1" Dockerfile > Dockerfile.tmp; mv Dockerfile.tmp Dockerfile; done
+# Find all requirements(-dev)?.txt files and generate COPY ... instructions in the Dockerfile
+	for REQUIREMENT in $$(find packages test-packages -type f -name requirements*.txt); do awk "/REQUIREMENTS_END/ { print \"COPY $${REQUIREMENT} /src/$${REQUIREMENT}\"; }; 1" Dockerfile > Dockerfile.tmp; mv Dockerfile.tmp Dockerfile; done
 
 # Dockerfile is defined as a PHONY target which means it will always be rebuilt.
 # As the build of the Dockerfile relies on environment variables which we have
