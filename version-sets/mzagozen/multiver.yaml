@@ -1,0 +1,19 @@
+
+multiver-test_6.1.7_6.1.8:
+  extends: .multiver_test
+  variables:
+    OLD_NSO_VERSION: "6.1.7"
+    NSO_VERSION: "6.1.8"
+  needs:
+    - build-6.1.7
+    - build-6.1.8
+
+multiver-test_6.1.8_6.3.1:
+  extends: .multiver_test
+  variables:
+    OLD_NSO_VERSION: "6.1.8"
+    NSO_VERSION: "6.3.1"
+  needs:
+    - build-6.1.8
+    - build-6.3.1
+

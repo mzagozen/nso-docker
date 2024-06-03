@@ -1,0 +1,58 @@
+build-6.1.7:
+  extends: .build
+  variables:
+    NSO_VERSION: "6.1.7"
+    NSO_VERSION_IS_TOT: "false"
+
+build-6.1.8:
+  extends: .build
+  variables:
+    NSO_VERSION: "6.1.8"
+    NSO_VERSION_IS_TOT: "true"
+
+build-6.3.1:
+  extends: .build
+  variables:
+    NSO_VERSION: "6.3.1"
+    NSO_VERSION_IS_TOT: "true"
+
+multiver-test_6.1.7_6.1.8:
+  extends: .multiver_test
+  variables:
+    OLD_NSO_VERSION: "6.1.7"
+    NSO_VERSION: "6.1.8"
+  needs:
+    - build-6.1.7
+    - build-6.1.8
+
+multiver-test_6.1.8_6.3.1:
+  extends: .multiver_test
+  variables:
+    OLD_NSO_VERSION: "6.1.8"
+    NSO_VERSION: "6.3.1"
+  needs:
+    - build-6.1.8
+    - build-6.3.1
+
+push-6.1.7:
+  extends: .push
+  variables:
+    NSO_VERSION: "6.1.7"
+    NSO_VERSION_IS_TOT: "false"
+
+push-6.1.8:
+  extends: .push
+  variables:
+    NSO_VERSION: "6.1.8"
+    NSO_VERSION_IS_TOT: "true"
+
+push-6.3.1:
+  extends: .push
+  variables:
+    NSO_VERSION: "6.3.1"
+    NSO_VERSION_IS_TOT: "true"
+
+test-version-set:
+  extends: .test-version-set
+  variables:
+    VERSION_SET: "mzagozen"

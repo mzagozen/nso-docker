@@ -1,0 +1,11 @@
+build-6.1.8:
+  extends: .build
+  variables:
+    NSO_VERSION: "6.1.8"
+    NSO_VERSION_IS_TOT: "true"
+
+build-6.3.1:
+  extends: .build
+  variables:
+    NSO_VERSION: "6.3.1"
+    NSO_VERSION_IS_TOT: "true"

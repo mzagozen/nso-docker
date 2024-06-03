@@ -18,7 +18,7 @@ jobs:
       uses: actions/checkout@v4
     - name: Get NSO versions
       id: get-versions
-      run: echo "versions=$(jq -c 'keys_unsorted' version-sets/nso-developer/versions.json)" >> $GITHUB_OUTPUT
+      run: echo "versions=$(jq -c 'keys_unsorted' version-sets/${VERSION_SET}/versions.json)" >> $GITHUB_OUTPUT
 
   build:
     runs-on: ubuntu-latest
