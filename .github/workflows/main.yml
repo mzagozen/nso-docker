@@ -22,8 +22,6 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    container:
-      image: registry.gitlab.com/nso-developer/ci-runner-image:latest
     needs: get-nso-versions
     strategy:
       matrix:
@@ -40,6 +38,9 @@ jobs:
       run: aws s3 cp s3://mzagozen-nso-docker-private/nso-${NSO_VERSION}.linux.x86_64.installer.bin nso-install-files/nso-${NSO_VERSION}.linux.x86_64.installer.bin
     - name: List nso-install-files
       run: ls -l nso-install-files
+    - name: Install prerequisites
+      run: |
+        which expect jq sshpass xmlstarlet || (echo "Installing prerequisites..." && sudo apt-get install -qy expect jq sshpass xmlstarlet)
     - name: Building base and dev image
       run: make build
     - name: "Testing images"
