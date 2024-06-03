@@ -1,0 +1,58 @@
+name: CI
+
+on: [push, pull_request]
+
+env:
+# TODO: get this from some context? variable
+  VERSION_SET: mzagozen
+  CI_PIPELINE_ID: ${{ github.run_id }}
+  DOCKER_REGISTRY: ghcr.io/${{ github.repository }}/
+
+jobs:
+  get-nso-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.get-versions.outputs.versions }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Get NSO versions
+      id: get-versions
+      run: echo "versions=$(jq -c 'keys_unsorted' version-sets/nso-developer/versions.json)" >> $GITHUB_OUTPUT
+
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: registry.gitlab.com/nso-developer/ci-runner-image:latest
+    needs: get-nso-versions
+    strategy:
+      matrix:
+        version: ${{fromJson(needs.get-nso-versions.outputs.versions)}}
+    env:
+      NSO_VERSION: ${{ matrix.version }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Get NSO installer from S3
+      env:
+        AWS_DEFAULT_REGION: eu-central-1
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: aws s3 cp s3://mzagozen-nso-docker-private/nso-${NSO_VERSION}.linux.x86_64.installer.bin nso-install-files/nso-${NSO_VERSION}.linux.x86_64.installer.bin
+    - name: List nso-install-files
+      run: ls -l nso-install-files
+    - name: Building base and dev image
+      run: make build
+    - name: "Testing images"
+      run: make test
+    - name: "Testing skeletons"
+      run: make test-skeletons
+    - name: Login to Container Registry
+      if: ${{ vars.DOCKER_PUSH != 'false' }}
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Pushing images
+      if: ${{ vars.DOCKER_PUSH != 'false' }}
+      run: make push
