@@ -7,6 +7,9 @@ env:
   VERSION_SET: mzagozen
   CI_PIPELINE_ID: ${{ github.run_id }}
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}/
+  # The NSO_IMAGE_PATH variable is defined as a namespace variable
+  # NSO_IMAGE_PATH: ghcr.io/${{ github.repository }}/
+  NSO_IMAGE_PATH: ${{ vars.NSO_IMAGE_PATH }}
 
 jobs:
   get-nso-versions:
