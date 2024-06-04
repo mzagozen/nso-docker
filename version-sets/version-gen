@@ -227,21 +227,37 @@ def write_flat(filename, versions):
 # A list of dicts, which is suitable for use in GitHub Action job matrices
 # [
 #     {
-#         "version": "5.6"
+#         "version": "5.6",
+#         "is_tot": false
 #     },
 #     {
-#         "version": "5.6.1"
+#         "version": "5.6.1",
+#         "is_tot": false
 #     },
 #     {
-#         "version": "5.6.2"
+#         "version": "5.6.2",
+#         "is_tot": true
 #     }
 # ]
 def write_json_lod(filename, versions):
     with open(filename, "w") as f:
-        f.write(json.dumps(list(map(lambda ver: {"version": ver.version}, versions))))
+        f.write(json.dumps(list(map(lambda ver: {"version": ver.version, "is_tot": ver.tot}, versions))))
 
 
-def write_multiver_test(filename, versions, needs):
+def write_multiver_test(filename, multi_versions, needs):
+    with open(filename, "w") as f:
+        f.write("\n")
+        for mv in multi_versions:
+            f.write(formatter_mv(mv["old_version"], mv["version"], needs))
+            f.write("\n")
+
+
+def write_json_multiver(filename, multi_versions):
+    with open(filename, "w") as f:
+        f.write(json.dumps(multi_versions))
+
+
+def gen_multiver(versions):
     """
     For a given version, we want to test upgrading from the tip of train for
     all previous trains within our major version. For example, for 5.3 we want
@@ -259,53 +275,55 @@ def write_multiver_test(filename, versions, needs):
       - e.g. for 5.2.1, test going from from 5.1.2 and 5.3
     For 5.x versions, we want to test an upgrade from the last 4.x version
     """
-    with open(filename, "w") as f:
-        for vsn in versions:
-            olds = []
-            majmin = vsn.tup[0:2]
+    multiverse = []
+    for vsn in versions:
+        olds = []
+        majmin = vsn.tup[0:2]
 
-            # if 6, upgrade from last 5.x release
-            if majmin[0] == 6:
-                all5 = list(f_major(5, versions))
-                if len(all5) >= 1:
-                    olds.append(all5[-1])
+        # if 6, upgrade from last 5.x release
+        if majmin[0] == 6:
+            all5 = list(f_major(5, versions))
+            if len(all5) >= 1:
+                olds.append(all5[-1])
 
-            # if 6, upgrade from last 4.x release
-            if majmin[0] == 6:
-                all4 = list(f_major(4, versions))
-                if len(all4) >= 1:
-                    olds.append(all4[-1])
+        # if 6, upgrade from last 4.x release
+        if majmin[0] == 6:
+            all4 = list(f_major(4, versions))
+            if len(all4) >= 1:
+                olds.append(all4[-1])
 
-            # if 5, upgrade from last 4.x release
-            if majmin[0] == 5:
-                all4 = list(f_major(4, versions))
-                if len(all4) >= 1:
-                    olds.append(all4[-1])
+        # if 5, upgrade from last 4.x release
+        if majmin[0] == 5:
+            all4 = list(f_major(4, versions))
+            if len(all4) >= 1:
+                olds.append(all4[-1])
 
-            # go from previous sibling, e.g. for 4.7.6 we want to upgrade from 4.7.5
-            mm_prevs = list(f_lower(vsn, f_majmin(majmin, versions)))
-            if len(mm_prevs) >= 1:
-                olds.append(mm_prevs[-1])
+        # go from previous sibling, e.g. for 4.7.6 we want to upgrade from 4.7.5
+        mm_prevs = list(f_lower(vsn, f_majmin(majmin, versions)))
+        if len(mm_prevs) >= 1:
+            olds.append(mm_prevs[-1])
 
-            # go from next sibling, e.g. for 4.7.5 we want to downgrade from 4.7.6
-            # currently disabled since tests fail for like 5.3 -> 5.1.2
+        # go from next sibling, e.g. for 4.7.5 we want to downgrade from 4.7.6
+        # currently disabled since tests fail for like 5.3 -> 5.1.2
 #            mm_nexts = list(f_higher(vsn, f_majmin(majmin, versions)))
 #            if len(mm_nexts) >= 1:
 #                olds.append(mm_nexts[0])
 
-            # try upgrade from all previous tot in same major version
-            for ovsn in f_tot(f_lower(vsn, f_major(vsn.tup[0], versions))):
-                olds.append(ovsn)
+        # try upgrade from all previous tot in same major version
+        for ovsn in f_tot(f_lower(vsn, f_major(vsn.tup[0], versions))):
+            olds.append(ovsn)
 
-            f.write("\n".join(map(lambda x: formatter_mv(x.version, vsn.version, needs), sorted(list(set(olds) - set([vsn]))))))
-            f.write("\n")
+        for old in sorted(list(set(olds) - set([vsn]))):
+            multiverse.append({"old_version": old.version, "version": vsn.version})
+    return multiverse
+
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('version_file', metavar='version-file')
+    parser.add_argument('--json', action='store_true')
     parser.add_argument('--job')
-    parser.add_argument('--json-lod')
     parser.add_argument('--flat')
     parser.add_argument('--multiver')
     parser.add_argument('--needs')
@@ -316,15 +334,19 @@ if __name__ == '__main__':
 
     tot_versions = list(f_tot(versions_input))
     versions = [v if v not in tot_versions else replace(v, tot=True) for v in versions_input]
-
-    if args.json_lod is not None:
-        write_json_lod(args.json_lod, versions)
+    multi_versions = gen_multiver(versions)
 
     if args.multiver is not None:
-        write_multiver_test(args.multiver, versions, args.needs)
+        if args.json:
+            write_json_multiver(args.multiver, multi_versions)
+        else:
+            write_multiver_test(args.multiver, multi_versions, args.needs)
 
     if args.job is not None:
         write_job_set(args.job, versions, args.needs)
 
     if args.flat is not None:
-        write_flat(args.flat, versions)
+        if args.json:
+            write_json_lod(args.flat, versions)
+        else:
+            write_flat(args.flat, versions)
