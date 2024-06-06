@@ -6,7 +6,7 @@
 
 NSO in Docker is an open source project to enable users of NSO to easily run NSO in Docker.
 
-**NOTE**: There are official Cisco NSO container images offered for download from <https://software.cisco.com>, which is entirely different from NSO in Docker. See the [26](#org81f51bf).
+**NOTE**: There are official Cisco NSO container images offered for download from <https://software.cisco.com>, which is entirely different from NSO in Docker. See the [26](#org1f545cb).
 
 
 ## Downloading for internal Cisco users
@@ -94,8 +94,8 @@ See the [NID skeletons](./skeletons/) for how to get started developing in the N
 NSO in Docker runs on:
 
 -   Linux
--   Mac OS X, see [Mac OS X support](#org9ca6000) for more information
--   Windows, see [Windows Support](#orgbfbacdd) for more information
+-   Mac OS X, see [Mac OS X support](#orgf0598ce) for more information
+-   Windows, see [Windows Support](#orga4970e8) for more information
 
 To build these images, you need:
 
@@ -170,7 +170,9 @@ Run `make tag-release` and provide the version to tag using the variable `NSO_VE
     debian                       buster              b5d2d9b1597b        11 days ago         114MB
 
 
-### Automatically building Docker images using Gitlab CI
+### Automatically building Docker images using CI
+
+The CI configurationi in this repository supports both GitLab CI and GitHub Actions. Regardless of the CI system used, the process is the same;
 
 -   Clone this repository to your local machine
     -   `git clone https://gitlab.com/nso-developer/nso-docker.git`
@@ -190,33 +192,40 @@ Run `make tag-release` and provide the version to tag using the variable `NSO_VE
     -   the docker tag for built images consists of the NSO version number and the CI pipeline id, for example `cisco-nso-base:5.3-7583729` for NSO version `5.3` and pipeline id `7583729`
     -   CI builds on the `master` branch will in addition be tagged with just the NSO version, that is `cisco-nso-base:5.3`, after passing tests
 
+1.  Alternative for providing NSO install files into any CI runner
 
-### Alternative for providing NSO install files into CI runner
+    The above method involves committing the NSO install files to this git repository (your clone of it). This means the repository must be private so that you don&rsquo;t leak the NSO install files nor the produced Docker images. There are a number of reasons for why this setup might not be ideal;
+    
+    -   you have an open source public repo and wish to run CI publicly
+    -   LFS doesn&rsquo;t work with your choice of code hosting
+    -   NSO install files are too big or you just don&rsquo;t like LFS
+    
+    There is an alternative. The build job script can evaluate a code snippet placed in the `PRE_SCRIPT` variable. This code snippet can be used to download the NSO install files from a secure location. For example, if the NSO install files are stored in an S3 bucket, the following code snippet can be used to download the files;
+    
+        aws s3 cp --region eu-central-1 s3://YOUR-PRIVATE-BUCKET-NAME/nso-${NSO_VERSION}.linux.x86_64.installer.bin nso-install-files/nso-${NSO_VERSION}.linux.x86_64.installer.bin
+    
+    To use this method, set the `PRE_SCRIPT` variable in the CI settings page to the code snippet shown with . The `PRE_SCRIPT` variable is evaluated before the build job starts. The script has access to the current environment variables. In GitLab CI this includes masked (secret) variables. In GitHub Actions the secrets used must be referenced explicitly, so you must prefix the secrets you want accessible in the script with the `PRE_` prefix. For example, the snippet above depends on two secrets: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. In GitHub Actions these would be set as `PRE_AWS_ACCESS_KEY_ID` and `PRE_AWS_SECRET_ACCESS_KEY`.
 
-The above method involves committing the NSO install files to this git repository (your clone of it). This means the repository must be private so that you don&rsquo;t leak the NSO install files nor the produced Docker images. There are a number of reasons for why this setup might not be ideal;
+2.  Alternative for providing NSO install files into GitLab self-hosted CI runner
 
--   you have an open source public repo and wish to run CI publicly
--   LFS doesn&rsquo;t work with your choice of code hosting
--   NSO install files are too big or you just don&rsquo;t like LFS
-
-There is an alternative. The path in which the build process looks for the NSO install file(s) is specified by `NSO_INSTALL_FILES_DIR`. The default value is `nso-install-files/`, i.e. a directory relative to the root of the repository. The standard way of delivering the NSO install files, as outlined in the process above, is to place the NSO files in that directory. The alternative is to change the `NSO_INSTALL_FILES_DIR` variable. Note how you can set this environment variable through the GitLab CI settings page under variables. You do **not** need to commit anything. In case you are running Gitlab CI with the `docker` runner, add the path to the list of `volumes`, for example:
-
-    [[runners]]
-      name = "my-runner"
-      url = "https://gitlab.com/"
-      token = "s3cr3t"
-      executor = "docker"
-      [runners.docker]
-        tls_verify = false
-        image = "debian:buster"
-        privileged = false
-        disable_entrypoint_overwrite = false
-        oom_kill_disable = false
-        disable_cache = false
-        volumes = ["/cache", "/var/run/docker.sock:/var/run/docker.sock", "/data/nso-install-files:/nso-install-files"]
-        shm_size = 0
-
-The path `/data/nso-install-files` on the host machine becomes available as `/nso-install-files/` in the CI build docker containers and by specifying that path (`/nso-install-files`) using the CI variable settings, the job will now pick up the NSO images from there. This is how the public repo at <https://gitlab.com/nso-developer/nso-docker> works. It allows us to host all code in public, run CI tests in public yet not reveal the NSO install file as required by its EULA.
+    Another alternative exists for the self-hosted GitLab CI runner where you can change the way the job container is set up. The path in which the build process looks for the NSO install file(s) is specified by `NSO_INSTALL_FILES_DIR`. The default value is `nso-install-files/`, i.e. a directory relative to the root of the repository. The standard way of delivering the NSO install files, as outlined in the process above, is to place the NSO files in that directory. The alternative is to change the `NSO_INSTALL_FILES_DIR` variable. Note how you can set this environment variable through the GitLab CI settings page under variables. You do **not** need to commit anything. In case you are running Gitlab CI with the `docker` runner, add the path to the list of `volumes`, for example:
+    
+        [[runners]]
+          name = "my-runner"
+          url = "https://gitlab.com/"
+          token = "s3cr3t"
+          executor = "docker"
+          [runners.docker]
+            tls_verify = false
+            image = "debian:buster"
+            privileged = false
+            disable_entrypoint_overwrite = false
+            oom_kill_disable = false
+            disable_cache = false
+            volumes = ["/cache", "/var/run/docker.sock:/var/run/docker.sock", "/data/nso-install-files:/nso-install-files"]
+            shm_size = 0
+    
+    The path `/data/nso-install-files` on the host machine becomes available as `/nso-install-files/` in the CI build docker containers and by specifying that path (`/nso-install-files`) using the CI variable settings, the job will now pick up the NSO images from there. This is how the public repo at <https://gitlab.com/nso-developer/nso-docker> works. It allows us to host all code in public, run CI tests in public yet not reveal the NSO install file as required by its EULA.
 
 
 ## Running
@@ -296,7 +305,7 @@ The normal configuration mangling will NOT be applied to the mounted `/etc/ncs/n
 
 NOTE: the mangling will be directly applied to the mounted file and modify it. Many of the mangling operations are not idempotently implemented, so this will likely break things. If you want to supply a configuration file and mangle it on startup, you probably want to mount it to `/etc/ncs/ncs.conf.in`.
 
-It is entirely up to you to manage your `ncs.conf` and make sure that it is correct. See the section [6.3.4](#org41967e4).
+It is entirely up to you to manage your `ncs.conf` and make sure that it is correct. See the section [6.3.4](#orgc008460).
 
 
 ### Injecting ncs.conf through a persistent volume
@@ -347,7 +356,6 @@ On startup, when neither `/etc/ncs/ncs.conf` (a directly mounted config) or `/ns
 <th scope="col" class="org-left">Description</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td class="org-left"><code>MANGLE_CONFIG</code></td>
@@ -356,14 +364,12 @@ On startup, when neither `/etc/ncs/ncs.conf` (a directly mounted config) or `/ns
 <td class="org-left">Force enabling or disabling of config mangling</td>
 </tr>
 
-
 <tr>
 <td class="org-left"><code>PAM</code></td>
 <td class="org-left">boolean</td>
 <td class="org-left">false</td>
 <td class="org-left">Enable PAM instead of local auth in NSO (AAA)</td>
 </tr>
-
 
 <tr>
 <td class="org-left"><code>HA_ENABLE</code></td>
@@ -372,14 +378,12 @@ On startup, when neither `/etc/ncs/ncs.conf` (a directly mounted config) or `/ns
 <td class="org-left">Enable HA</td>
 </tr>
 
-
 <tr>
 <td class="org-left"><code>HTTP_ENABLE</code></td>
 <td class="org-left">boolean</td>
 <td class="org-left">false</td>
 <td class="org-left">Enable HTTP web UI</td>
 </tr>
-
 
 <tr>
 <td class="org-left"><code>HTTPS_ENABLE</code></td>
@@ -388,14 +392,12 @@ On startup, when neither `/etc/ncs/ncs.conf` (a directly mounted config) or `/ns
 <td class="org-left">Enable HTTPS (TLS) web UI</td>
 </tr>
 
-
 <tr>
 <td class="org-left"><code>SSH_PORT</code></td>
 <td class="org-left">uint16</td>
 <td class="org-left">22</td>
 <td class="org-left">Set port for SSH to listen on</td>
 </tr>
-
 
 <tr>
 <td class="org-left"><code>SSH_HOST_KEY_TYPE</code></td>
@@ -404,14 +406,12 @@ On startup, when neither `/etc/ncs/ncs.conf` (a directly mounted config) or `/ns
 <td class="org-left">Set the SSH host key type to ed2551, rsa or dsa (default changes to rsa if ssh<sub>host</sub><sub>rsa</sub><sub>key</sub> is found)</td>
 </tr>
 
-
 <tr>
 <td class="org-left"><code>CLI_STYLE</code></td>
 <td class="org-left">enum</td>
 <td class="org-left">j</td>
 <td class="org-left">Configure the default CLI style to &rsquo;j&rsquo; or &rsquo;c&rsquo;</td>
 </tr>
-
 
 <tr>
 <td class="org-left"><code>XPATH_TRACE</code></td>
@@ -420,14 +420,12 @@ On startup, when neither `/etc/ncs/ncs.conf` (a directly mounted config) or `/ns
 <td class="org-left">Enable XPath tracing</td>
 </tr>
 
-
 <tr>
 <td class="org-left"><code>DEVEL_LOG_LEVEL</code></td>
 <td class="org-left">enum</td>
 <td class="org-left">info</td>
 <td class="org-left">Configure the devel.log level to &rsquo;info&rsquo; or &rsquo;trace&rsquo;</td>
 </tr>
-
 
 <tr>
 <td class="org-left"><code>AUTO_WIZARD</code></td>
@@ -497,7 +495,6 @@ For a truly deterministic environment, downstream repositories that rely on thes
 <th scope="col" class="org-left">Config var</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td class="org-left">TCP</td>
@@ -506,14 +503,12 @@ For a truly deterministic environment, downstream repositories that rely on thes
 <td class="org-left"><code>SSH_PORT</code></td>
 </tr>
 
-
 <tr>
 <td class="org-left">TCP</td>
 <td class="org-right">80</td>
 <td class="org-left">HTTP</td>
 <td class="org-left">&#xa0;</td>
 </tr>
-
 
 <tr>
 <td class="org-left">TCP</td>
@@ -522,7 +517,6 @@ For a truly deterministic environment, downstream repositories that rely on thes
 <td class="org-left">&#xa0;</td>
 </tr>
 
-
 <tr>
 <td class="org-left">TCP</td>
 <td class="org-right">830</td>
@@ -530,14 +524,12 @@ For a truly deterministic environment, downstream repositories that rely on thes
 <td class="org-left">&#xa0;</td>
 </tr>
 
-
 <tr>
 <td class="org-left">TCP</td>
 <td class="org-right">4334</td>
 <td class="org-left">NETCONF call-home</td>
 <td class="org-left">&#xa0;</td>
 </tr>
-
 
 <tr>
 <td class="org-left">TCP</td>
@@ -667,7 +659,6 @@ NSO does not rotate the logs itself, but the installation does include a system 
 <th scope="col" class="org-left">Description</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td class="org-left"><code>CRON_ENABLE</code></td>
@@ -675,7 +666,6 @@ NSO does not rotate the logs itself, but the installation does include a system 
 <td class="org-left">true</td>
 <td class="org-left">Enables cron to run entries in <code>/etc/cron.*/</code> and crontabs</td>
 </tr>
-
 
 <tr>
 <td class="org-left"><code>LOGROTATE_ENABLE</code></td>

@@ -34,14 +34,34 @@ jobs:
         include: ${{fromJson(needs.get-nso-versions.outputs.versions)}}
     env:
       NSO_VERSION: ${{ matrix.version }}
+      PRE_PREFIX: "PRE_"
     steps:
     - uses: actions/checkout@v4
-    - name: Get NSO installer from S3
+    - name: Set env vars from secrets context
+      if: ${{ vars.PRE_SCRIPT }}
       env:
-        AWS_DEFAULT_REGION: eu-central-1
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: aws s3 cp s3://mzagozen-nso-docker-private/nso-${NSO_VERSION}.linux.x86_64.installer.bin nso-install-files/nso-${NSO_VERSION}.linux.x86_64.installer.bin
+        SECRETS_CONTEXT: ${{ toJson(secrets) }}
+      run: |
+        # Pipe the JSON string into jq
+        echo "${SECRETS_CONTEXT}" |
+        # Convert JSON object into an array of key-value pairs
+        jq -r 'to_entries |
+        # Map over each key-value pair and select only those with keys starting with prefix defined in PRE_PREFIX
+        map(select(.key | startswith("${{ env.PRE_PREFIX}}"))) |
+        # Format each pair as "KEY=VALUE" with the prefix stripped and append it all to the environment file
+        .[] | "\(.key|sub("${{env.PRE_PREFIX}}"; ""))=\(.value)"' >> $GITHUB_ENV
+    - name: Run the PRE_SCRIPT
+      if: ${{ vars.PRE_SCRIPT }}
+      run: eval "${{ vars.PRE_SCRIPT }}"
+    - name: Remove previously set env vars from secrets context
+      env:
+        SECRETS_CONTEXT: ${{ toJson(secrets) }}
+      run: |
+        echo "${SECRETS_CONTEXT}" |
+        jq -r 'to_entries |
+        map(select(.key | startswith("${{ env.PRE_PREFIX}}"))) |
+        # Ideally, we should unset the environment variables, but that is not possible: https://github.com/actions/runner/issues/1126
+        .[] | "\(.key|sub("${{env.PRE_PREFIX}}"; ""))="' >> $GITHUB_ENV
     - name: List nso-install-files
       run: ls -l nso-install-files
     - name: Install prerequisites

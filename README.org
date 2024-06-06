@@ -155,7 +155,8 @@ For internal Cisco users; ready made container images built from this repository
    debian                       buster              b5d2d9b1597b        11 days ago         114MB
    #+END_SRC
 
-*** Automatically building Docker images using Gitlab CI
+*** Automatically building Docker images using CI
+  The CI configurationi in this repository supports both GitLab CI and GitHub Actions. Regardless of the CI system used, the process is the same;
    - Clone this repository to your local machine
      - ~git clone https://gitlab.com/nso-developer/nso-docker.git~
    - Download Cisco NSO
@@ -174,13 +175,22 @@ For internal Cisco users; ready made container images built from this repository
      - the docker tag for built images consists of the NSO version number and the CI pipeline id, for example =cisco-nso-base:5.3-7583729= for NSO version =5.3= and pipeline id =7583729=
      - CI builds on the =master= branch will in addition be tagged with just the NSO version, that is =cisco-nso-base:5.3=, after passing tests
 
-*** Alternative for providing NSO install files into CI runner
+**** Alternative for providing NSO install files into any CI runner
     The above method involves committing the NSO install files to this git repository (your clone of it). This means the repository must be private so that you don't leak the NSO install files nor the produced Docker images. There are a number of reasons for why this setup might not be ideal;
     - you have an open source public repo and wish to run CI publicly
     - LFS doesn't work with your choice of code hosting
     - NSO install files are too big or you just don't like LFS
 
-    There is an alternative. The path in which the build process looks for the NSO install file(s) is specified by ~NSO_INSTALL_FILES_DIR~. The default value is ~nso-install-files/~, i.e. a directory relative to the root of the repository. The standard way of delivering the NSO install files, as outlined in the process above, is to place the NSO files in that directory. The alternative is to change the ~NSO_INSTALL_FILES_DIR~ variable. Note how you can set this environment variable through the GitLab CI settings page under variables. You do *not* need to commit anything. In case you are running Gitlab CI with the ~docker~ runner, add the path to the list of ~volumes~, for example:
+    There is an alternative. The build job script can evaluate a code snippet placed in the ~PRE_SCRIPT~ variable. This code snippet can be used to download the NSO install files from a secure location. For example, if the NSO install files are stored in an S3 bucket, the following code snippet can be used to download the files;
+
+    #+BEGIN_SRC shell
+      aws s3 cp --region eu-central-1 s3://YOUR-PRIVATE-BUCKET-NAME/nso-${NSO_VERSION}.linux.x86_64.installer.bin nso-install-files/nso-${NSO_VERSION}.linux.x86_64.installer.bin
+    #+END_SRC
+
+    To use this method, set the ~PRE_SCRIPT~ variable in the CI settings page to the code snippet shown with . The ~PRE_SCRIPT~ variable is evaluated before the build job starts. The script has access to the current environment variables. In GitLab CI this includes masked (secret) variables. In GitHub Actions the secrets used must be referenced explicitly, so you must prefix the secrets you want accessible in the script with the ~PRE_~ prefix. For example, the snippet above depends on two secrets: ~AWS_ACCESS_KEY_ID~ and ~AWS_SECRET_ACCESS_KEY~. In GitHub Actions these would be set as ~PRE_AWS_ACCESS_KEY_ID~ and ~PRE_AWS_SECRET_ACCESS_KEY~.
+
+**** Alternative for providing NSO install files into GitLab self-hosted CI runner
+    Another alternative exists for the self-hosted GitLab CI runner where you can change the way the job container is set up. The path in which the build process looks for the NSO install file(s) is specified by ~NSO_INSTALL_FILES_DIR~. The default value is ~nso-install-files/~, i.e. a directory relative to the root of the repository. The standard way of delivering the NSO install files, as outlined in the process above, is to place the NSO files in that directory. The alternative is to change the ~NSO_INSTALL_FILES_DIR~ variable. Note how you can set this environment variable through the GitLab CI settings page under variables. You do *not* need to commit anything. In case you are running Gitlab CI with the ~docker~ runner, add the path to the list of ~volumes~, for example:
 
     #+BEGIN_SRC text
       [[runners]]
