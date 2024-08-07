@@ -1,3 +1,11 @@
+test-6.0.4:
+  extends: .test
+  variables:
+    NSO_VERSION: "6.0.4"
+    NSO_VERSION_IS_TOT: "true"
+  needs:
+    - build-6.0.4
+
 test-6.1.8:
   extends: .test
   variables:
@@ -6,10 +14,10 @@ test-6.1.8:
   needs:
     - build-6.1.8
 
-test-6.3.1:
+test-6.3.4:
   extends: .test
   variables:
-    NSO_VERSION: "6.3.1"
+    NSO_VERSION: "6.3.4"
     NSO_VERSION_IS_TOT: "true"
   needs:
-    - build-6.3.1
+    - build-6.3.4
