@@ -98,6 +98,7 @@ jobs:
     # - build-${{ matrix.version }}
     # - build-${{ matrix.old_version}}
     strategy:
+      fail-fast: false
       matrix:
         include: ${{fromJson(needs.get-nso-versions.outputs.multi_versions)}}
     steps:
@@ -128,6 +129,7 @@ jobs:
     - get-nso-versions
     - multiver-test
     strategy:
+      fail-fast: false
       matrix:
         include: ${{fromJson(needs.get-nso-versions.outputs.versions)}}
     env:
