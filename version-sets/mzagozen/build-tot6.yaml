@@ -15,3 +15,9 @@ build-6.3.4:
   variables:
     NSO_VERSION: "6.3.4"
     NSO_VERSION_IS_TOT: "true"
+
+build-6.4:
+  extends: .build
+  variables:
+    NSO_VERSION: "6.4"
+    NSO_VERSION_IS_TOT: "true"

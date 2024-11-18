@@ -69,3 +69,9 @@ deploy-6.3.4:
   variables:
     NSO_VERSION: "6.3.4"
     NSO_VERSION_IS_TOT: "true"
+
+deploy-6.4:
+  extends: .deploy
+  variables:
+    NSO_VERSION: "6.4"
+    NSO_VERSION_IS_TOT: "true"

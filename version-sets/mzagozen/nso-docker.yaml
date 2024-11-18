@@ -196,6 +196,12 @@ build-6.3.4:
     NSO_VERSION: "6.3.4"
     NSO_VERSION_IS_TOT: "true"
 
+build-6.4:
+  extends: .build
+  variables:
+    NSO_VERSION: "6.4"
+    NSO_VERSION_IS_TOT: "true"
+
 multiver-test_4.7.9_4.7.10:
   extends: .multiver_test
   variables:
@@ -1573,6 +1579,51 @@ multiver-test_6.3.3_6.3.4:
     - build-6.3.3
     - build-6.3.4
 
+multiver-test_4.7.11_6.4:
+  extends: .multiver_test
+  variables:
+    OLD_NSO_VERSION: "4.7.11"
+    NSO_VERSION: "6.4"
+  needs:
+    - build-4.7.11
+    - build-6.4
+
+multiver-test_5.8.8_6.4:
+  extends: .multiver_test
+  variables:
+    OLD_NSO_VERSION: "5.8.8"
+    NSO_VERSION: "6.4"
+  needs:
+    - build-5.8.8
+    - build-6.4
+
+multiver-test_6.0.4_6.4:
+  extends: .multiver_test
+  variables:
+    OLD_NSO_VERSION: "6.0.4"
+    NSO_VERSION: "6.4"
+  needs:
+    - build-6.0.4
+    - build-6.4
+
+multiver-test_6.1.8_6.4:
+  extends: .multiver_test
+  variables:
+    OLD_NSO_VERSION: "6.1.8"
+    NSO_VERSION: "6.4"
+  needs:
+    - build-6.1.8
+    - build-6.4
+
+multiver-test_6.3.4_6.4:
+  extends: .multiver_test
+  variables:
+    OLD_NSO_VERSION: "6.3.4"
+    NSO_VERSION: "6.4"
+  needs:
+    - build-6.3.4
+    - build-6.4
+
 push-4.7.9:
   extends: .push
   variables:
@@ -1769,6 +1820,12 @@ push-6.3.4:
   extends: .push
   variables:
     NSO_VERSION: "6.3.4"
+    NSO_VERSION_IS_TOT: "true"
+
+push-6.4:
+  extends: .push
+  variables:
+    NSO_VERSION: "6.4"
     NSO_VERSION_IS_TOT: "true"
 
 test-version-set:
