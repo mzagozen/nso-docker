@@ -176,6 +176,12 @@ push-6.1.8:
   extends: .push
   variables:
     NSO_VERSION: "6.1.8"
+    NSO_VERSION_IS_TOT: "false"
+
+push-6.1.14:
+  extends: .push
+  variables:
+    NSO_VERSION: "6.1.14"
     NSO_VERSION_IS_TOT: "true"
 
 push-6.3.1:

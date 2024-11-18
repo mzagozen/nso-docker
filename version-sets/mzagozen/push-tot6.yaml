@@ -4,10 +4,10 @@ push-6.0.4:
     NSO_VERSION: "6.0.4"
     NSO_VERSION_IS_TOT: "true"
 
-push-6.1.8:
+push-6.1.14:
   extends: .push
   variables:
-    NSO_VERSION: "6.1.8"
+    NSO_VERSION: "6.1.14"
     NSO_VERSION_IS_TOT: "true"
 
 push-6.3.4:
