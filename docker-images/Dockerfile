@@ -150,7 +150,6 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/* /root/.cache
 
 COPY --from=nso_install /etc/profile.d /etc/profile.d
-COPY --from=nso_install /etc/init.d/ncs /etc/init.d/.
 COPY --from=nso_install /etc/logrotate.d/ncs /etc/logrotate.d/.
 COPY --from=nso_install /etc/ncs /etc/ncs/
 COPY --from=nso_install /opt/ncs /opt/ncs/
@@ -163,7 +162,6 @@ ENTRYPOINT ["/enter-shell.sh"]
 FROM deb_base AS base
 
 COPY --from=nso_stripped /etc/profile.d /etc/profile.d
-COPY --from=nso_stripped /etc/init.d/ncs /etc/init.d/.
 COPY --from=nso_stripped /etc/logrotate.d/ncs /etc/logrotate.d/.
 COPY --from=nso_stripped /etc/ncs /etc/ncs/
 COPY --from=nso_stripped /opt/ncs /opt/ncs/
